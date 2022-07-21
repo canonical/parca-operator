@@ -1,0 +1,14 @@
+# Copyright 2022 Jon Seager
+# See LICENSE file for licensing details.
+name: parca-juju-profiler
+
+display-name: Parca Juju Profiler
+
+summary: Parca operator for profiling Juju controllers
+
+description: |
+  A simple deployment of the Parca server, along with configuration to run juju-introspect
+  as a systemd unit to allow Parca to scrape profiling information from the machine agent.
+
+  This operator will install the latest Parca release from Github, and install it along with
+  the relevant systemd units to start it and configure it.
