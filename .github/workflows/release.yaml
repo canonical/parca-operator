@@ -48,7 +48,6 @@ jobs:
       - lib-check
       - lint
       - unit-test
-      - integration-test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
