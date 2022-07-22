@@ -8,7 +8,7 @@ User=parca
 Group=parca  
 Restart=on-failure  
 RestartSec=10  
-ExecStart=/usr/bin/parca --config-path=/etc/parca/parca.yaml  
+ExecStart=/usr/bin/parca --storage-active-memory={{ mem_limit }} --config-path=/etc/parca/parca.yaml  
 ExecReload=/bin/kill -HUP $MAINPID  
 LimitNOFILE=65535  
 NoNewPrivileges=true  
