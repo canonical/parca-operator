@@ -52,3 +52,23 @@ jobs:
           lxd_version: latest/stable
       - name: Run tests
         run: tox -e functional
+
+  integration-test:
+    name: Integration tests (microk8s)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup operator environment
+        uses: charmed-kubernetes/actions-operator@main
+        with:
+          provider: lxd
+      - name: Run integration tests
+        # set a predictable model name so it can be consumed by charm-logdump-action
+        run: tox -e integration
+      - name: Dump logs
+        uses: canonical/charm-logdump-action@main
+        if: failure()
+        with:
+          app: parca-juju-profiler
+          model: controller
