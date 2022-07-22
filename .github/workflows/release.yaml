@@ -42,12 +42,24 @@ jobs:
       - name: Run tests
         run: tox -e unit
 
+  functional-test:
+    name: Functional tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: python -m pip install tox
+      - name: Run tests
+        run: tox -e functional-tests
+
   release-to-charmhub:
     name: Release to CharmHub
     needs:
       - lib-check
       - lint
       - unit-test
+      - functional-test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
