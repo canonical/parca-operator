@@ -30,3 +30,22 @@ $ juju deploy parca-juju-profiler --to 0
 
 Once the deployment is complete, you can get to the Parca dashboard at:
 `http://<controller-address>:7070/`
+
+## Configuration
+
+By default, Parca will store profiles **in memory**. This is the current default, as the
+persistence settings are very new and prone to breaking! The default limit for in-memory storage is
+4096MB. When Parca reaches that limit, profiles are purged.
+
+The in-memory storage limit is configurable like so:
+
+```bash
+# Increase limit to 8192MB
+$ juju config parca-juju-profiler memory-storage-limit=8192
+```
+
+If you wish to enable the **experimental** storage persistence, you can do as such:
+
+```bash
+$ juju config parca-juju-profiler storage-persist=true
+```
