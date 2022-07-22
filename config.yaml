@@ -1,7 +1,21 @@
 options:
+  storage-persist:
+    description: |
+      Do not store profiles in memory, persist to disk. Location for persistence is '/var/lib/parca'
+    type: boolean
+    default: false
+
   memory-storage-limit:
     description: |
-      By default, Parca runs by storing profiles in memory and flushing when that limit is reached.
-      This option allows the operator to configure the in-memory storage limit, specified in MB.
+      When storing profiles in memory, configure the in-memory storage limit, specified in MB.
+
+      Does nothing if storage-persist is True.
     type: int
-    default: 512
+    default: 4096
+
+  juju-scrape-interval:
+    description: |
+      The interval (in seconds) upon which to scrape the juju-introspect pprof endpoint for
+      profiles. Tune according to storage/memory usage needs.
+    type: int
+    default: 5

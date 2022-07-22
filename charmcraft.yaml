@@ -21,3 +21,6 @@ parts:
     source-type: git
     override-build: |
       make build
+      cp bin/parca $CRAFT_PART_INSTALL/parca
+    stage:
+      - parca
