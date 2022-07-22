@@ -19,6 +19,7 @@ parts:
     build-snaps: [go, node/16/stable]
     source: https://github.com/parca-dev/parca
     source-type: git
+    source-commit: fc8435ec173dbde62ce48cf4a84d9c7b08090421
     override-build: |
       make build
       cp bin/parca $CRAFT_PART_INSTALL/parca
