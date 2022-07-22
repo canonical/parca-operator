@@ -12,12 +12,3 @@ bases:
 parts:
   charm:
     charm-python-packages: [setuptools, pip]
-
-  parca:
-    plugin: dump
-    build-packages: [build-essential]
-    build-snaps: [go, node/16/stable]
-    source: https://github.com/parca-dev/parca
-    source-type: git
-    override-build: |
-      make build
