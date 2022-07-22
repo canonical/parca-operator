@@ -40,7 +40,7 @@ class TestCharm(unittest.TestCase):
     def test_write_configs(self):
         self.harness.charm._write_configs()
         file_pairs = [
-            ("src/configs/parca.service", "/etc/systemd/system/parca.service"),
+            ("tests/functional/parca.service", "/etc/systemd/system/parca.service"),
             ("src/configs/juju-introspect.service", "/etc/systemd/system/juju-introspect.service"),
             ("src/configs/parca.yaml", "/etc/parca/parca.yaml"),
         ]
