@@ -17,8 +17,31 @@ from ops.testing import Harness
 from charm import ParcaOperatorCharm
 
 
-class TestCharm(unittest.TestCase):
+def _fake_tarfile():
+    """Returns a fake tarfile containing one file named 'parca'."""
+    return io.BytesIO(
+        base64.b64decode(
+            "H4sIAAAAAAAAA+3OMQ7CMBAEQNe8wk+wg3HeY5AoUhAU4P8kiIIKRBEhpJkrVrq7Ys9tOrSwrjSrpSyZ+"
+            "116zac+5NLVWpaZ9zl12xpiWrnXw+1ybVOMYRhPb/8+3f/UcRz3bdr8ugYAAAAAAAAAAABfugNLBOmnAC"
+            "gAAA=="
+        )
+    )
+
+
+def _systemd_unit_property(filename, property):
+    """Takes a list of lines from a systemd unit file, returns the one with the specified prop."""
+    with open(filename, "r") as f:
+        lines = f.readlines()
+    return [line for line in lines if line.startswith(f"{property}=")][0]
+
+
+class TestCharm(TestCase):
     def setUp(self):
+        self.setUpPyfakefs()
+        # Add the charm's config.yaml manually as pyfakefs messes with things!
+        filename = inspect.getfile(ParcaOperatorCharm)
+        charm_dir = pathlib.Path(filename).parents[1]
+        self.fs.add_real_file(charm_dir / "config.yaml")
         self.harness = Harness(ParcaOperatorCharm)
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
