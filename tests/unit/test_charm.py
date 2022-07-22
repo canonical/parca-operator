@@ -2,9 +2,10 @@
 # See LICENSE file for licensing details.
 
 import base64
+import inspect
 import io
 import os
-import unittest
+import pathlib
 from pathlib import Path
 from platform import uname
 from subprocess import CalledProcessError
@@ -15,13 +16,36 @@ from urllib.error import HTTPError, URLError
 from charms.operator_libs_linux.v0.apt import PackageError, PackageNotFoundError
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from ops.testing import Harness
-from pyfakefs.fake_filesystem_unittest import TestCase as PyfakefsTestCase
+from pyfakefs.fake_filesystem_unittest import TestCase
 
 from charm import ParcaOperatorCharm
 
 
-class TestCharm(unittest.TestCase):
+def _fake_tarfile():
+    """Returns a fake tarfile containing one file named 'parca'."""
+    return io.BytesIO(
+        base64.b64decode(
+            "H4sIAAAAAAAAA+3OMQ7CMBAEQNe8wk+wg3HeY5AoUhAU4P8kiIIKRBEhpJkrVrq7Ys9tOrSwrjSrpSyZ+"
+            "116zac+5NLVWpaZ9zl12xpiWrnXw+1ybVOMYRhPb/8+3f/UcRz3bdr8ugYAAAAAAAAAAABfugNLBOmnAC"
+            "gAAA=="
+        )
+    )
+
+
+def _systemd_unit_property(filename, property):
+    """Takes a list of lines from a systemd unit file, returns the one with the specified prop."""
+    with open(filename, "r") as f:
+        lines = f.readlines()
+    return [line for line in lines if line.startswith(f"{property}=")][0]
+
+
+class TestCharm(TestCase):
     def setUp(self):
+        self.setUpPyfakefs()
+        # Add the charm's config.yaml manually as pyfakefs messes with things!
+        filename = inspect.getfile(ParcaOperatorCharm)
+        charm_dir = pathlib.Path(filename).parents[1]
+        self.fs.add_real_file(charm_dir / "config.yaml")
         self.harness = Harness(ParcaOperatorCharm)
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
@@ -57,27 +81,19 @@ class TestCharm(unittest.TestCase):
         self.assertEqual(resume.call_count, 2)
         self.assertEqual(self.harness.charm.unit.status, ActiveStatus())
 
-    def test_config_changed(self):
-        self.assertTrue(True)
-
-
-def _fake_tarfile():
-    """Returns a fake tarfile containing one file named 'parca'."""
-    return io.BytesIO(
-        base64.b64decode(
-            "H4sIAAAAAAAAA+3OMQ7CMBAEQNe8wk+wg3HeY5AoUhAU4P8kiIIKRBEhpJkrVrq7Ys9tOrSwrjSrpSyZ+"
-            "116zac+5NLVWpaZ9zl12xpiWrnXw+1ybVOMYRhPb/8+3f/UcRz3bdr8ugYAAAAAAAAAAABfugNLBOmnAC"
-            "gAAA=="
-        )
-    )
-
-
-class TestHelpers(PyfakefsTestCase):
-    def setUp(self):
-        self.setUpPyfakefs()
-        self.harness = Harness(ParcaOperatorCharm)
-        self.addCleanup(self.harness.cleanup)
-        self.harness.begin()
+    @patch("charm.systemd.service_restart")
+    @patch("charm.systemd.daemon_reload")
+    def test_config_changed(self, reload, restart):
+        self.fs.add_real_directory("src/configs")
+        os.makedirs("/etc/systemd/system", exist_ok=True)
+        self.harness.update_config({"memory-storage-limit": 1024})
+        reload.assert_called_once()
+        restart.assert_called_with("parca")
+        exec_line = _systemd_unit_property("/etc/systemd/system/parca.service", "ExecStart")
+        self.assertTrue("--storage-active-memory=1073741824" in exec_line)
+        self.harness.update_config({"memory-storage-limit": 2048})
+        exec_line = _systemd_unit_property("/etc/systemd/system/parca.service", "ExecStart")
+        self.assertTrue("--storage-active-memory=2147483648" in exec_line)
 
     @patch("charm.apt.update")
     @patch("charm.apt.add_package")
@@ -157,3 +173,9 @@ class TestHelpers(PyfakefsTestCase):
     def test_open_port_failure(self, _):
         open = self.harness.charm._open_port()
         self.assertFalse(open)
+
+    @patch("charm.ParcaOperatorCharm._config_changed")
+    def test_storage_limit_property(self, _):
+        self.assertEqual(self.harness.charm._storage_limit_in_bytes, 536870912)
+        self.harness.update_config({"memory-storage-limit": 1024})
+        self.assertEqual(self.harness.charm._storage_limit_in_bytes, 1073741824)

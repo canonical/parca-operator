@@ -16,6 +16,7 @@ from urllib.error import HTTPError, URLError
 
 from charms.operator_libs_linux.v0 import apt, passwd
 from charms.operator_libs_linux.v1 import systemd
+from jinja2 import Template
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
@@ -33,6 +34,7 @@ class ParcaOperatorCharm(CharmBase):
         super().__init__(*args)
         self.framework.observe(self.on.install, self._install)
         self.framework.observe(self.on.start, self._start)
+        self.framework.observe(self.on.config_changed, self._config_changed)
 
     def _install(self, _):
         """Install dependencies for Parca and ensure initial configs are written."""
@@ -56,7 +58,10 @@ class ParcaOperatorCharm(CharmBase):
         self.unit.status = ActiveStatus()
 
     def _config_changed(self, _):
-        pass
+        """Update the configuration files, restart parca."""
+        self._write_configs()
+        systemd.daemon_reload()
+        systemd.service_restart("parca")
 
     def _install_dependencies(self) -> bool:
         """Install apt dependencies for Parca."""
@@ -109,8 +114,16 @@ class ParcaOperatorCharm(CharmBase):
         """Write systemd units and Parca server config."""
         logger.debug("writing configs and systemd unit files")
         try:
-            # Install a systemd unit file to start Parca
-            shutil.copy("src/configs/parca.service", "/etc/systemd/system/parca.service")
+            # # Install a systemd unit file to start Parca
+            # shutil.copy("src/configs/parca.service", "/etc/systemd/system/parca.service")
+            # Open the template systemd unit file
+            with open("src/configs/parca.service", "r") as t:
+                template = Template(t.read())
+            # Render the template files with the correct values
+            rendered = template.render(mem_limit=self._storage_limit_in_bytes)
+            # Write the rendered file out to disk
+            with open("/etc/systemd/system/parca.service", "w+") as t:
+                t.write(rendered)
             # Install a systemd unit file to start `juju-introspect`
             shutil.copy(
                 "src/configs/juju-introspect.service",
@@ -122,6 +135,7 @@ class ParcaOperatorCharm(CharmBase):
             return True
         except Exception as e:
             logger.error("error writing config files: %s", str(e))
+            logger.error(e, exc_info=True)
             return False
 
     def _open_port(self) -> bool:
@@ -132,6 +146,10 @@ class ParcaOperatorCharm(CharmBase):
         except CalledProcessError as e:
             logger.error("error opening port: %s", str(e))
             return False
+
+    @property
+    def _storage_limit_in_bytes(self):
+        return self.config["memory-storage-limit"] * 1048576
 
 
 if __name__ == "__main__":  # pragma: nocover

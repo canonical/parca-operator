@@ -1,0 +1,7 @@
+options:
+  memory-storage-limit:
+    description: |
+      By default, Parca runs by storing profiles in memory and flushing when that limit is reached.
+      This option allows the operator to configure the in-memory storage limit, specified in MB.
+    type: int
+    default: 512
