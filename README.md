@@ -25,7 +25,7 @@ $ juju bootstrap localhost lxd
 # Switch to the controller model
 $ juju switch controller
 # Deploy the charm to the controller machine
-$ juju deploy parca-juju-profiler --to 0
+$ juju deploy --to 0 parca-juju-profiler --channel edge
 ```
 
 Once the deployment is complete, you can get to the Parca dashboard at:
