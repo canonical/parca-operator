@@ -11,16 +11,28 @@ bases:
 
 parts:
   charm:
-    charm-python-packages: [setuptools, pip]
+    charm-python-packages:
+      - setuptools
+      - pip
 
   parca:
     plugin: dump
-    build-packages: [build-essential]
-    build-snaps: [go, node/16/stable]
+    build-packages:
+      - build-essential
+    build-snaps:
+      - go/1.18/stable
+      - node/16/stable
     source: https://github.com/parca-dev/parca
     source-type: git
-    source-commit: fc8435ec173dbde62ce48cf4a84d9c7b08090421
+    override-pull: |
+      # This is a hack to make this build work on Github Actions where --destructive-mode is used,
+      # and for some reason interferes with the pull stage.
+      git clone https://github.com/parca-dev/parca $CRAFT_PART_SRC
+      git checkout fc8435ec173dbde62ce48cf4a84d9c7b08090421
     override-build: |
+      # This is a hack to make this build work on Github Actions where --destructive-mode is used,
+      # in combination with sudo, and results in the wrong version of Go being invoked.
+      export PATH="/snap/bin:$PATH"
       make build
       cp bin/parca $CRAFT_PART_INSTALL/parca
     stage:
