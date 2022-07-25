@@ -9,12 +9,14 @@
 
 
 import unittest
-from unittest.mock import call, patch
+from subprocess import CalledProcessError
+from unittest.mock import patch
 
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from ops.testing import Harness
 
 from charm import ParcaOperatorCharm
+from parca import ParcaInstallError
 
 
 class TestCharm(unittest.TestCase):
@@ -23,50 +25,65 @@ class TestCharm(unittest.TestCase):
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
 
+    @patch("charm.Parca.install", lambda _: True)
+    @patch("charm.JujuIntrospect.install", lambda _: True)
     def test_install_success(self):
-        # Make all of the helpers pass, run the event handler
-        self.harness.charm._install_dependencies = lambda x=None: True
-        self.harness.charm._install_parca_bin = lambda x=None: True
         self.harness.charm.on.install.emit()
         self.assertEqual(self.harness.charm.unit.status, MaintenanceStatus("installing parca"))
 
-    def test_install_fail_installing_deps(self):
-        # One by one, make helpers fail, ensure we block
-        self.harness.charm._install_dependencies = lambda x=None: False
+    @patch("parca.Parca.install")
+    @patch("charm.JujuIntrospect.install", lambda _: True)
+    def test_install_fail_installing_deps(self, install):
+        install.side_effect = ParcaInstallError("failed installing parca dependencies")
         self.harness.charm.on.install.emit()
         self.assertEqual(
-            self.harness.charm.unit.status, BlockedStatus("failed installing dependencies")
+            self.harness.charm.unit.status, BlockedStatus("failed installing parca dependencies")
         )
 
-    def test_install_fail_installing_parca(self):
-        self.harness.charm._install_dependencies = lambda x=None: True
-        self.harness.charm._install_parca_bin = lambda x=None: False
+        install.side_effect = ParcaInstallError("failed installing parca")
         self.harness.charm.on.install.emit()
         self.assertEqual(self.harness.charm.unit.status, BlockedStatus("failed installing parca"))
 
-    @patch("charm.systemd.service_resume")
-    @patch("charm.check_call")
-    def test_start(self, check_call, resume):
+    @patch("charm.ParcaOperatorCharm._open_port")
+    @patch("charm.Parca.start")
+    @patch("charm.JujuIntrospect.start")
+    def test_start(self, ji_start, parca_start, open_port):
         self.harness.charm.on.start.emit()
-        self.assertListEqual(resume.mock_calls, [call("juju-introspect"), call("parca")])
-        check_call.assert_called_with(["open-port", "7070/TCP"])
+        ji_start.assert_called_once()
+        parca_start.assert_called_once()
+        open_port.assert_called_once()
         self.assertEqual(self.harness.charm.unit.status, ActiveStatus())
 
-    @patch("charm.systemd.service_restart")
-    @patch("charm.systemd.daemon_reload")
-    @patch("charm.ParcaOperatorCharm._configure_parca")
-    def test_config_changed(self, configure, reload, restart):
+    @patch("charm.Parca.configure")
+    def test_config_changed(self, configure):
         config = {
             "storage-persist": False,
             "memory-storage-limit": 1024,
             "juju-scrape-interval": 5,
         }
         self.harness.update_config(config)
-        reload.assert_called_once()
-        restart.assert_called_with("parca")
         configure.assert_called_with(config)
+        self.assertEqual(self.harness.charm.unit.status, ActiveStatus())
 
-    def test_remove(self):
-        self.harness.charm._cleanup = lambda x=None: True
+    @patch("charm.Parca.remove")
+    @patch("charm.JujuIntrospect.remove")
+    def test_remove(self, ji_stop, parca_stop):
         self.harness.charm.on.remove.emit()
-        self.assertEqual(self.harness.charm.unit.status, MaintenanceStatus("removing parca"))
+        parca_stop.assert_called_once()
+        ji_stop.assert_called_once()
+        self.assertEqual(
+            self.harness.charm.unit.status, MaintenanceStatus("removing parca and juju-introspect")
+        )
+
+    @patch("charm.check_call")
+    def test_open_port(self, check_call):
+        result = self.harness.charm._open_port()
+        check_call.assert_called_with(["open-port", "7070/TCP"])
+        self.assertTrue(result)
+
+    @patch("charm.check_call")
+    def test_open_port_fail(self, check_call):
+        check_call.side_effect = CalledProcessError(1, "foo")
+        result = self.harness.charm._open_port()
+        check_call.assert_called_with(["open-port", "7070/TCP"])
+        self.assertFalse(result)
