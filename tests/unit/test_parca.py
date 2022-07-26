@@ -1,38 +1,50 @@
 # Copyright 2022 Jon Seager
 # See LICENSE file for licensing details.
 
-# These unit tests only focus on flow/exception handling. The functionality
-# nearly all touches the underlying system, and is tested within the functional
-# test suite instead.
-
 import unittest
-from unittest.mock import patch
 
-from parca import Parca, ParcaInstallError
-from tests.helpers import DEFAULT_PARCA_CONFIG
+import yaml
+
+from parca import ParcaConfig
 
 
-@patch("parca.Parca._install_dependencies", lambda x: True)
-@patch("parca.Parca._create_user", lambda x: True)
-@patch("parca.systemd.daemon_reload", lambda x=True: True)
-@patch("parca.systemd.service_restart", lambda x=True: True)
-class TestParca(unittest.TestCase):
+class TestCharm(unittest.TestCase):
     def setUp(self):
-        self.parca = Parca()
+        pass
 
-    def test_install_failures(self):
-        with patch("parca.Parca._install_dependencies", lambda x=True: False):
-            try:
-                self.parca.install()
-            except ParcaInstallError as e:
-                self.assertEqual(str(e), "failed installing parca dependencies")
-        with patch("parca.Parca._install_parca_bin", lambda x=True: False):
-            try:
-                self.parca.install()
-            except ParcaInstallError as e:
-                self.assertEqual(str(e), "failed installing parca")
+    def test_parca_config_no_scrape_config_to_dict(self):
+        parca_config = ParcaConfig("/tmp", [])
+        expected = {
+            "object_storage": {"bucket": {"type": "FILESYSTEM", "config": {"directory": "/tmp"}}},
+            "scrape_configs": [],
+        }
+        self.assertEqual(parca_config.to_dict(), expected)
 
-    def test_configure_fail(self):
-        with patch("parca.render_template", side_effect=Exception):
-            result = self.parca.configure(DEFAULT_PARCA_CONFIG)
-            self.assertFalse(result)
+    def test_parca_config_no_scrape_config_to_str(self):
+        parca_config = ParcaConfig("/tmp", [])
+        expected = yaml.safe_dump(
+            {
+                "object_storage": {
+                    "bucket": {"type": "FILESYSTEM", "config": {"directory": "/tmp"}}
+                },
+                "scrape_configs": [],
+            }
+        )
+        self.assertEqual(str(parca_config), expected)
+
+    def test_parca_config_with_scrape_config(self):
+        parca_config = ParcaConfig("/tmp", [{"metrics_path": "foobar", "foobar": "bazqux"}])
+        # The metric_path attribute should be stripped from the scrape configs
+        expected = {
+            "object_storage": {"bucket": {"type": "FILESYSTEM", "config": {"directory": "/tmp"}}},
+            "scrape_configs": [{"foobar": "bazqux"}],
+        }
+        self.assertEqual(parca_config.to_dict(), expected)  #
+
+    def test_parca_config_with_scrape_config(self):
+        parca_config = ParcaConfig("/tmp", [{"foobar": "bazqux"}])
+        expected = {
+            "object_storage": {"bucket": {"type": "FILESYSTEM", "config": {"directory": "/tmp"}}},
+            "scrape_configs": [{"foobar": "bazqux"}],
+        }
+        self.assertEqual(parca_config.to_dict(), expected)
