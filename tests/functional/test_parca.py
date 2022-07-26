@@ -2,20 +2,39 @@
 # See LICENSE file for licensing details.
 
 import logging
+import os
 import unittest
 from pathlib import Path
 from platform import uname
 
 from charms.operator_libs_linux.v0 import apt, passwd
 from charms.operator_libs_linux.v1 import systemd
+from jinja2 import Template
 
-from parca import Parca
-from tests.helpers import (
-    DEFAULT_PARCA_CONFIG,
-    file_content_equals_string,
-    install_fake_daemon,
-    render_template,
-)
+from parca import Parca, ParcaConfig
+
+DEFAULT_PARCA_CONFIG = {
+    "storage-persist": False,
+    "memory-storage-limit": 1024,
+    "juju-scrape-interval": 5,
+}
+
+
+def _file_content_equals_string(filename: str, expected: str):
+    """Check if the contents of file 'filename' equal the 'expected' param."""
+    with open(filename) as f:
+        return f.read() == expected
+
+
+def _render_template(template, context):
+    """Render a Jinja2 template at the specified path with specified context.
+
+    Return the rendered file as a string.
+    """
+    with open(template) as f:
+        template = Template(f.read())
+    return template.render(**context)
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +48,10 @@ def _setup_test_parca(parca):
 class TestParca(unittest.TestCase):
     def setUp(self):
         self.parca = Parca()
-        install_fake_daemon("./parca")
+        with open("./parca", "w+") as f:
+            # Simple bash loop that runs infinitely
+            f.write("""#!/bin/bash\nwhile true; do sleep 2; done""")
+        os.chmod("./parca", 0o755)
 
     def test_install(self):
         self.parca.install()
@@ -65,7 +87,7 @@ class TestParca(unittest.TestCase):
 
         self.assertFalse(systemd.service_running(self.parca.SVC_NAME))
 
-    def test_configure_storage_persist(self):
+    def test_configure_systemd_storage_persist(self):
         config = {"storage-persist": True, "juju-scrape-interval": 5}
         self.parca.configure(config)
 
@@ -76,29 +98,33 @@ class TestParca(unittest.TestCase):
         ]
 
         # Check the systemd service was rendered correctly
-        svc = render_template(
+        svc = _render_template(
             "src/configs/parca.service", {"storage_config": " ".join(storage_config)}
         )
-        self.assertTrue(file_content_equals_string(self.parca.SVC_PATH, svc))
+        self.assertTrue(_file_content_equals_string(self.parca.SVC_PATH, svc))
 
         prof_dir = self.parca.PROFILE_PATH
         self.assertTrue(prof_dir.exists())
         self.assertEqual(prof_dir.owner(), self.parca.SVC_NAME)
 
-    def test_configure_storage_in_memory(self):
+    def test_configure_systemd_storage_in_memory(self):
         self.parca.configure(DEFAULT_PARCA_CONFIG)
         storage_config = ["--storage-in-memory=true", "--storage-active-memory=1073741824"]
         # Check the systemd service was rendered correctly
-        svc = render_template(
+        svc = _render_template(
             "src/configs/parca.service", {"storage_config": " ".join(storage_config)}
         )
-        self.assertTrue(file_content_equals_string(self.parca.SVC_PATH, svc))
+        self.assertTrue(_file_content_equals_string(self.parca.SVC_PATH, svc))
 
-    def test_configure_scrape_interval(self):
+    def test_configure_parca_no_scrape_jobs(self):
         self.parca.configure(DEFAULT_PARCA_CONFIG)
-        # Check the parca.yaml was rendered correctly
-        cfg = render_template("src/configs/parca.yaml", {"interval": 5})
-        self.assertTrue(file_content_equals_string(self.parca.CONFIG_PATH, cfg))
+        config = ParcaConfig(self.parca.PROFILE_PATH, [])
+        self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(config)))
+
+    def test_configure_parca_simple_scrape_jobs(self):
+        self.parca.configure(DEFAULT_PARCA_CONFIG, [{"metrics_path": "foobar", "bar": "baz"}])
+        config = ParcaConfig(self.parca.PROFILE_PATH, [{"metrics_path": "foobar", "bar": "baz"}])
+        self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(config)))
 
     def test_create_user(self):
         self.parca._create_user()

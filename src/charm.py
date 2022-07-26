@@ -7,11 +7,11 @@
 import logging
 from subprocess import CalledProcessError, check_call
 
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointConsumer
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 
-from jujuintrospect import JujuIntrospect
 from parca import Parca, ParcaInstallError
 
 logger = logging.getLogger(__name__)
@@ -28,34 +28,42 @@ class ParcaOperatorCharm(CharmBase):
         self.framework.observe(self.on.remove, self._remove)
 
         self.parca = Parca()
-        self.juju_introspect = JujuIntrospect()
+
+        self.metrics_consumer = MetricsEndpointConsumer(self)
+
+        self.framework.observe(
+            self.metrics_consumer.on.targets_changed, self._on_scrape_targets_changed
+        )
 
     def _install(self, _):
         """Install dependencies for Parca and ensure initial configs are written."""
         self.unit.status = MaintenanceStatus("installing parca")
         try:
             self.parca.install()
-            self.juju_introspect.install()
         except ParcaInstallError as e:
             self.unit.status = BlockedStatus(str(e))
 
     def _start(self, _):
         """Start both the Parca service and the Juju Introspect service."""
         self.parca.start()
-        self.juju_introspect.start()
         self._open_port()
         self.unit.status = ActiveStatus()
 
     def _config_changed(self, _):
         """Update the configuration files, restart parca."""
         self.unit.status = MaintenanceStatus("reconfiguring parca")
-        self.parca.configure(self.config)
+        scrape_config = self.metrics_consumer.jobs()
+        self.parca.configure(self.config, scrape_config)
         self.unit.status = ActiveStatus()
 
     def _remove(self, _):
         self.unit.status = MaintenanceStatus("removing parca and juju-introspect")
         self.parca.remove()
-        self.juju_introspect.remove()
+
+    def _on_scrape_targets_changed(self, _):
+        self.unit.status = MaintenanceStatus("reconfiguring parca")
+        self.parca.configure(self.config, self.metrics_consumer.jobs())
+        self.unit.status = ActiveStatus()
 
     def _open_port(self) -> bool:
         """Ensure that Juju opens the correct TCP port for the Parca Dashboard."""

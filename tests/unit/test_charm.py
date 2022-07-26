@@ -12,11 +12,14 @@ import unittest
 from subprocess import CalledProcessError
 from unittest.mock import patch
 
+import ops.testing
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from ops.testing import Harness
 
 from charm import ParcaOperatorCharm
 from parca import ParcaInstallError
+
+ops.testing.SIMULATE_CAN_CONNECT = True
 
 
 class TestCharm(unittest.TestCase):
@@ -26,13 +29,11 @@ class TestCharm(unittest.TestCase):
         self.harness.begin()
 
     @patch("charm.Parca.install", lambda _: True)
-    @patch("charm.JujuIntrospect.install", lambda _: True)
     def test_install_success(self):
         self.harness.charm.on.install.emit()
         self.assertEqual(self.harness.charm.unit.status, MaintenanceStatus("installing parca"))
 
     @patch("parca.Parca.install")
-    @patch("charm.JujuIntrospect.install", lambda _: True)
     def test_install_fail_installing_deps(self, install):
         install.side_effect = ParcaInstallError("failed installing parca dependencies")
         self.harness.charm.on.install.emit()
@@ -46,10 +47,8 @@ class TestCharm(unittest.TestCase):
 
     @patch("charm.ParcaOperatorCharm._open_port")
     @patch("charm.Parca.start")
-    @patch("charm.JujuIntrospect.start")
-    def test_start(self, ji_start, parca_start, open_port):
+    def test_start(self, parca_start, open_port):
         self.harness.charm.on.start.emit()
-        ji_start.assert_called_once()
         parca_start.assert_called_once()
         open_port.assert_called_once()
         self.assertEqual(self.harness.charm.unit.status, ActiveStatus())
@@ -59,18 +58,15 @@ class TestCharm(unittest.TestCase):
         config = {
             "storage-persist": False,
             "memory-storage-limit": 1024,
-            "juju-scrape-interval": 5,
         }
         self.harness.update_config(config)
-        configure.assert_called_with(config)
+        configure.assert_called_with(config, [])
         self.assertEqual(self.harness.charm.unit.status, ActiveStatus())
 
     @patch("charm.Parca.remove")
-    @patch("charm.JujuIntrospect.remove")
-    def test_remove(self, ji_stop, parca_stop):
+    def test_remove(self, parca_stop):
         self.harness.charm.on.remove.emit()
         parca_stop.assert_called_once()
-        ji_stop.assert_called_once()
         self.assertEqual(
             self.harness.charm.unit.status, MaintenanceStatus("removing parca and juju-introspect")
         )

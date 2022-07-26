@@ -12,10 +12,3 @@ options:
       Does nothing if storage-persist is True.
     type: int
     default: 4096
-
-  juju-scrape-interval:
-    description: |
-      The interval (in seconds) upon which to scrape the juju-introspect pprof endpoint for
-      profiles. Tune according to storage/memory usage needs.
-    type: int
-    default: 5
