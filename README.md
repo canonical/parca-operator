@@ -17,23 +17,36 @@ You can deploy the operator as such:
 $ juju deploy parca --channel edge
 ```
 
-Once the deployment is complete, you can get to the Parca dashboard at:
-`http://<controller-address>:7070/`
+Once the deployment is complete, grab the address of the Parca application:
 
-To profile a Juju controller, you can do the following:
+```bash
+$ juju show-unit parca/0 --format=json | jq -r '.["parca/0"]["public-address"]'
+```
+
+Now visit: `http://<parca-address>:7070/` to see the Parca dashboard.
+
+## Profiling a Juju Controller
+
+You can deploy this charm alongside `juju-introspect` to profile a running controller like so:
 
 ```shell
 # Bootstrap a new Juju controller on LXD
 $ juju bootstrap localhost lxd
+
 # Switch to the controller model
 $ juju switch controller
+
 # Deploy the juju-introspect charm to the controller machine
 $ juju deploy --to=0 juju-introspect --channel edge
+
 # Deploy the Parca charm
 $ juju deploy parca --channel edge
+
 # Relate the two charms to enable scraping
 $ juju relate parca juju-introspect
 ```
+
+If you visit the Parca dashboard, you should now see profiles for the related Juju controller.
 
 ## Configuration
 
