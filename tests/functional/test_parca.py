@@ -1,7 +1,6 @@
 # Copyright 2022 Jon Seager
 # See LICENSE file for licensing details.
 
-import logging
 import os
 import unittest
 from pathlib import Path
@@ -9,14 +8,18 @@ from platform import uname
 
 from charms.operator_libs_linux.v0 import apt, passwd
 from charms.operator_libs_linux.v1 import systemd
+from charms.parca.v0.parca_config import (
+    DEFAULT_CONFIG_PATH,
+    DEFAULT_PROFILE_PATH,
+    ParcaConfig,
+)
 from jinja2 import Template
 
-from parca import Parca, ParcaConfig
+from parca import Parca
 
 DEFAULT_PARCA_CONFIG = {
     "storage-persist": False,
     "memory-storage-limit": 1024,
-    "juju-scrape-interval": 5,
 }
 
 
@@ -34,9 +37,6 @@ def _render_template(template, context):
     with open(template) as f:
         template = Template(f.read())
     return template.render(**context)
-
-
-logger = logging.getLogger(__name__)
 
 
 def _setup_test_parca(parca):
@@ -91,40 +91,35 @@ class TestParca(unittest.TestCase):
         config = {"storage-persist": True, "juju-scrape-interval": 5}
         self.parca.configure(config)
 
-        storage_config = [
-            "--storage-in-memory=false",
-            "--storage-persist",
-            f"--storage-path={self.parca.PROFILE_PATH}",
-        ]
+        cmd = (
+            "/usr/bin/parca --config-path=/etc/parca/parca.yaml --storage-in-memory=false "
+            "--storage-persist --storage-path=/var/lib/parca"
+        )
 
         # Check the systemd service was rendered correctly
-        svc = _render_template(
-            "src/configs/parca.service", {"storage_config": " ".join(storage_config)}
-        )
+        svc = _render_template("src/configs/parca.service", {"parca_command": cmd})
         self.assertTrue(_file_content_equals_string(self.parca.SVC_PATH, svc))
 
-        prof_dir = self.parca.PROFILE_PATH
+        prof_dir = Path(DEFAULT_PROFILE_PATH)
         self.assertTrue(prof_dir.exists())
         self.assertEqual(prof_dir.owner(), self.parca.SVC_NAME)
 
     def test_configure_systemd_storage_in_memory(self):
         self.parca.configure(DEFAULT_PARCA_CONFIG)
-        storage_config = ["--storage-in-memory=true", "--storage-active-memory=1073741824"]
+        cmd = "/usr/bin/parca --config-path=/etc/parca/parca.yaml --storage-in-memory=true --storage-active-memory=1073741824"
         # Check the systemd service was rendered correctly
-        svc = _render_template(
-            "src/configs/parca.service", {"storage_config": " ".join(storage_config)}
-        )
+        svc = _render_template("src/configs/parca.service", {"parca_command": cmd})
         self.assertTrue(_file_content_equals_string(self.parca.SVC_PATH, svc))
 
     def test_configure_parca_no_scrape_jobs(self):
         self.parca.configure(DEFAULT_PARCA_CONFIG)
-        config = ParcaConfig(self.parca.PROFILE_PATH, [])
-        self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(config)))
+        config = ParcaConfig([])
+        self.assertTrue(_file_content_equals_string(DEFAULT_CONFIG_PATH, str(config)))
 
     def test_configure_parca_simple_scrape_jobs(self):
         self.parca.configure(DEFAULT_PARCA_CONFIG, [{"metrics_path": "foobar", "bar": "baz"}])
-        config = ParcaConfig(self.parca.PROFILE_PATH, [{"metrics_path": "foobar", "bar": "baz"}])
-        self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(config)))
+        config = ParcaConfig([{"metrics_path": "foobar", "bar": "baz"}])
+        self.assertTrue(_file_content_equals_string(DEFAULT_CONFIG_PATH, str(config)))
 
     def test_create_user(self):
         self.parca._create_user()

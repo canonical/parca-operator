@@ -3,7 +3,6 @@
 # See LICENSE file for licensing details.
 
 import asyncio
-import logging
 
 import requests
 from pytest import mark
@@ -11,8 +10,6 @@ from pytest_operator.plugin import OpsTest
 from tenacity import retry
 from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_exponential as wexp
-
-logger = logging.getLogger(__name__)
 
 PARCA = "parca"
 UNIT_0 = f"{PARCA}/0"
