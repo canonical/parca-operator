@@ -7,12 +7,13 @@
 import logging
 from subprocess import CalledProcessError, check_call
 
+from charms.operator_libs_linux.v1 import snap
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointConsumer
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 
-from parca import Parca, ParcaInstallError
+from parca import Parca
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +41,11 @@ class ParcaOperatorCharm(CharmBase):
         self.unit.status = MaintenanceStatus("installing parca")
         try:
             self.parca.install()
-        except ParcaInstallError as e:
+        except snap.SnapError as e:
             self.unit.status = BlockedStatus(str(e))
 
     def _start(self, _):
-        """Start both the Parca service and the Juju Introspect service."""
+        """Start Parca."""
         self.parca.start()
         self._open_port()
         self.unit.status = ActiveStatus()
@@ -57,7 +58,7 @@ class ParcaOperatorCharm(CharmBase):
         self.unit.status = ActiveStatus()
 
     def _remove(self, _):
-        self.unit.status = MaintenanceStatus("removing parca and juju-introspect")
+        self.unit.status = MaintenanceStatus("removing parca")
         self.parca.remove()
 
     def _on_scrape_targets_changed(self, _):

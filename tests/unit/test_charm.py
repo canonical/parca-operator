@@ -13,11 +13,11 @@ from subprocess import CalledProcessError
 from unittest.mock import patch
 
 import ops.testing
+from charms.operator_libs_linux.v1 import snap
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from ops.testing import Harness
 
 from charm import ParcaOperatorCharm
-from parca import ParcaInstallError
 
 ops.testing.SIMULATE_CAN_CONNECT = True
 
@@ -35,13 +35,7 @@ class TestCharm(unittest.TestCase):
 
     @patch("parca.Parca.install")
     def test_install_fail_installing_deps(self, install):
-        install.side_effect = ParcaInstallError("failed installing parca dependencies")
-        self.harness.charm.on.install.emit()
-        self.assertEqual(
-            self.harness.charm.unit.status, BlockedStatus("failed installing parca dependencies")
-        )
-
-        install.side_effect = ParcaInstallError("failed installing parca")
+        install.side_effect = snap.SnapError("failed installing parca")
         self.harness.charm.on.install.emit()
         self.assertEqual(self.harness.charm.unit.status, BlockedStatus("failed installing parca"))
 
@@ -67,9 +61,7 @@ class TestCharm(unittest.TestCase):
     def test_remove(self, parca_stop):
         self.harness.charm.on.remove.emit()
         parca_stop.assert_called_once()
-        self.assertEqual(
-            self.harness.charm.unit.status, MaintenanceStatus("removing parca and juju-introspect")
-        )
+        self.assertEqual(self.harness.charm.unit.status, MaintenanceStatus("removing parca"))
 
     @patch("charm.check_call")
     def test_open_port(self, check_call):
