@@ -11,7 +11,7 @@
 import json
 import unittest
 from subprocess import CalledProcessError
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import ops.testing
 from charms.operator_libs_linux.v1 import snap
@@ -47,15 +47,34 @@ class TestCharm(unittest.TestCase):
         self.harness.begin()
 
     @patch("charm.Parca.install", lambda _: True)
+    @patch("charm.Parca.version", "v0.12.0")
     def test_install_success(self):
         self.harness.charm.on.install.emit()
         self.assertEqual(self.harness.charm.unit.status, MaintenanceStatus("installing parca"))
 
     @patch("parca.Parca.install")
-    def test_install_fail_installing_deps(self, install):
+    def test_install_fail_(self, install):
         install.side_effect = snap.SnapError("failed installing parca")
         self.harness.charm.on.install.emit()
         self.assertEqual(self.harness.charm.unit.status, BlockedStatus("failed installing parca"))
+
+    @patch("charm.Parca.refresh", lambda _: True)
+    def test_upgrade_charm(self):
+        self.harness.charm.on.upgrade_charm.emit()
+        self.assertEqual(self.harness.charm.unit.status, MaintenanceStatus("refreshing parca"))
+
+    @patch("parca.Parca.refresh")
+    def test_upgrade_fail_(self, refresh):
+        refresh.side_effect = snap.SnapError("failed refreshing parca")
+        self.harness.charm.on.upgrade_charm.emit()
+        self.assertEqual(self.harness.charm.unit.status, BlockedStatus("failed refreshing parca"))
+
+    @patch("charm.snap.hold_refresh")
+    @patch("parca.Parca.version", new_callable=PropertyMock(return_value="v0.12.0"))
+    def test_update_status(self, _, hold):
+        self.harness.charm.on.update_status.emit()
+        hold.assert_called_once()
+        self.assertEqual(self.harness.get_workload_version(), "v0.12.0")
 
     @patch("charm.ParcaOperatorCharm._open_port")
     @patch("charm.Parca.start")

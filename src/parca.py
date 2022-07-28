@@ -4,6 +4,7 @@
 """Represents Parca on a host system. Provides a Parca class."""
 
 import logging
+from subprocess import check_output
 
 from charms.operator_libs_linux.v1 import snap
 from charms.parca.v0.parca_config import ParcaConfig
@@ -20,10 +21,16 @@ class Parca:
         """Installs the Parca snap package."""
         try:
             self._snap.ensure(snap.SnapState.Latest, channel="edge")
+            snap.hold_refresh()
         except snap.SnapError as e:
             logger.error("could not install parca. Reason: %s", e.message)
             logger.debug(e, exc_info=True)
             raise e
+
+    def refresh(self):
+        """Refreshes the Parca snap if there is a new revision."""
+        # The operation here is exactly the same, so just call the install method
+        self.install()
 
     def start(self):
         """Start and enable Parca using the snap service."""
@@ -64,6 +71,19 @@ class Parca:
     def running(self):
         """Reports if the 'parca-svc' snap service is running."""
         return self._snap.services["parca-svc"]["active"]
+
+    @property
+    def version(self) -> str:
+        """Reports the version of Parca currently installed."""
+        if self.installed:
+            results = check_output(["parca", "--version"]).decode()
+            splits = results.split(" ")
+            # If we're not on a 'proper' released version, include the first few digits of
+            # the commit we're build from
+            if "-next" in splits[2]:
+                return f"{splits[2]}+{splits[4][:6]}"
+            return splits[2]
+        raise snap.SnapError("parca snap not installed, cannot fetch version")
 
     @property
     def _snap(self):

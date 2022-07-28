@@ -30,9 +30,11 @@ class ParcaOperatorCharm(CharmBase):
 
         # Observe common Juju events
         self.framework.observe(self.on.install, self._install)
+        self.framework.observe(self.on.upgrade_charm, self._upgrade_charm)
         self.framework.observe(self.on.start, self._start)
         self.framework.observe(self.on.config_changed, self._config_changed)
         self.framework.observe(self.on.remove, self._remove)
+        self.framework.observe(self.on.update_status, self._update_status)
 
         # The profiling_consumer handles the relation that allows Parca to scrape other apps in the
         # model that provide a "profiling-endpoint" relation
@@ -53,8 +55,24 @@ class ParcaOperatorCharm(CharmBase):
         self.unit.status = MaintenanceStatus("installing parca")
         try:
             self.parca.install()
+            self.unit.set_workload_version(self.parca.version)
         except snap.SnapError as e:
             self.unit.status = BlockedStatus(str(e))
+
+    def _upgrade_charm(self, _):
+        """Ensure the snap is refreshed (in channel) if there are new revisions."""
+        self.unit.status = MaintenanceStatus("refreshing parca")
+        try:
+            self.parca.refresh()
+        except snap.SnapError as e:
+            self.unit.status = BlockedStatus(str(e))
+
+    def _update_status(self, _):
+        """Performed on an interval dictated by model config."""
+        # Ensure the hold is extended to make sure the snap never auto-refreshes
+        # out of our control
+        snap.hold_refresh()
+        self.unit.set_workload_version(self.parca.version)
 
     def _start(self, _):
         """Start Parca."""
