@@ -11,5 +11,9 @@ description: |
   time. Saving infrastructure cost, improving performance, and increasing reliability.
 
 requires:
+  profiling-endpoint:
+    interface: prometheus_scrape
+
+provides:
   metrics-endpoint:
     interface: prometheus_scrape
