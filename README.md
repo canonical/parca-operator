@@ -58,11 +58,11 @@ The in-memory storage limit is configurable like so:
 
 ```bash
 # Increase limit to 8192MB
-$ juju config parca-juju-profiler memory-storage-limit=8192
+$ juju config parca memory-storage-limit=8192
 ```
 
 If you wish to enable the **experimental** storage persistence, you can do as such:
 
 ```bash
-$ juju config parca-juju-profiler storage-persist=true
+$ juju config parca storage-persist=true
 ```
