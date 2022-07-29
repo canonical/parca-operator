@@ -17,3 +17,5 @@ requires:
 provides:
   metrics-endpoint:
     interface: prometheus_scrape
+  self-profiling-endpoint:
+    interface: prometheus_scrape

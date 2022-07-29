@@ -50,6 +50,13 @@ class ParcaOperatorCharm(CharmBase):
             relation_name="metrics-endpoint",
         )
 
+        # The self_profiling_endpoint_provider enables Parca to profile itself
+        self.self_profiling_endpoint_provider = MetricsEndpointProvider(
+            self,
+            jobs=[{"static_configs": [{"targets": ["*:7070"]}]}],
+            relation_name="self-profiling-endpoint",
+        )
+
     def _install(self, _):
         """Install dependencies for Parca and ensure initial configs are written."""
         self.unit.status = MaintenanceStatus("installing parca")
