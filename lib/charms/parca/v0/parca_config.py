@@ -31,7 +31,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 2
+LIBPATCH = 3
 
 
 DEFAULT_BIN_PATH = "/parca"
@@ -68,6 +68,16 @@ def parca_command_line(
         cmd.append(f"--storage-active-memory={limit}")
 
     return " ".join(cmd)
+
+
+def parse_version(vstr: str) -> str:
+    """Parse the output of 'parca --version' and return a representative string."""
+    splits = vstr.split(" ")
+    # If we're not on a 'proper' released version, include the first few digits of
+    # the commit we're build from - e.g. 0.12.1-next+deadbeef
+    if "-next" in splits[2]:
+        return f"{splits[2]}+{splits[4][:6]}"
+    return splits[2]
 
 
 class ParcaConfig:

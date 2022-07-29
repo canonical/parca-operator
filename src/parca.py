@@ -7,7 +7,7 @@ import logging
 from subprocess import check_output
 
 from charms.operator_libs_linux.v1 import snap
-from charms.parca.v0.parca_config import ParcaConfig
+from charms.parca.v0.parca_config import ParcaConfig, parse_version
 
 logger = logging.getLogger(__name__)
 
@@ -77,12 +77,7 @@ class Parca:
         """Reports the version of Parca currently installed."""
         if self.installed:
             results = check_output(["parca", "--version"]).decode()
-            splits = results.split(" ")
-            # If we're not on a 'proper' released version, include the first few digits of
-            # the commit we're build from
-            if "-next" in splits[2]:
-                return f"{splits[2]}+{splits[4][:6]}"
-            return splits[2]
+            return parse_version(results)
         raise snap.SnapError("parca snap not installed, cannot fetch version")
 
     @property

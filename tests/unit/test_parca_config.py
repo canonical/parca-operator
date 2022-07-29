@@ -4,7 +4,7 @@
 import unittest
 
 import yaml
-from charms.parca.v0.parca_config import ParcaConfig, parca_command_line
+from charms.parca.v0.parca_config import ParcaConfig, parca_command_line, parse_version
 
 
 class TestCharm(unittest.TestCase):
@@ -94,3 +94,11 @@ class TestCharm(unittest.TestCase):
             cmd,
             "/parca --config-path=/etc/parca/parca.yaml --storage-in-memory=false --storage-persist --storage-path=/tmp",
         )
+
+    def test_parse_version_next(self):
+        input = "parca, version v0.12.0-next (commit: e888718c206a5dd63d476849c7349a0352547f1a)\n"
+        self.assertEqual(parse_version(input), "v0.12.0-next+e88871")
+
+    def test_parca_version_tagged(self):
+        input = "parca, version v0.13.0 (commit: e888718c206a5dd63d476849c7349a0352547f1a)\n"
+        self.assertEqual(parse_version(input), "v0.13.0")
