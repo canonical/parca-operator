@@ -7,6 +7,7 @@
 import logging
 from subprocess import CalledProcessError, check_call
 
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.operator_libs_linux.v1 import snap
 from charms.prometheus_k8s.v0.prometheus_scrape import (
     MetricsEndpointConsumer,
@@ -56,6 +57,9 @@ class ParcaOperatorCharm(CharmBase):
             jobs=[{"static_configs": [{"targets": ["*:7070"]}]}],
             relation_name="self-profiling-endpoint",
         )
+
+        # Allow Parca to provide dashboards to Grafana over a relation
+        self._grafana_dashboard_provider = GrafanaDashboardProvider(self)
 
     def _install(self, _):
         """Install dependencies for Parca and ensure initial configs are written."""
