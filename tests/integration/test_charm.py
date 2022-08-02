@@ -38,7 +38,7 @@ async def test_application_is_up(ops_test: OpsTest):
 
 
 @mark.abort_on_fail
-async def test_metrics_endpoint_relation(ops_test: OpsTest):
+async def test_profiling_endpoint_relation(ops_test: OpsTest):
     await asyncio.gather(
         ops_test.model.deploy("juju-introspect", channel="edge", to="0"),
         ops_test.model.wait_for_idle(
@@ -64,4 +64,4 @@ async def test_relation_is_configured(ops_test: OpsTest):
     unit = list(status.applications[PARCA].units)[0]
     address = status["applications"][PARCA]["units"][unit]["public-address"]
     response = requests.get(f"http://{address}:7070/metrics")
-    assert "juju-introspect_juju-introspect_prometheus_scrape" in response.text
+    assert "juju-introspect" in response.text

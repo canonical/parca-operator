@@ -12,6 +12,7 @@ import json
 import unittest
 from subprocess import CalledProcessError
 from unittest.mock import PropertyMock, patch
+from uuid import uuid4
 
 import ops.testing
 from charms.operator_libs_linux.v1 import snap
@@ -22,19 +23,18 @@ from charm import ParcaOperatorCharm
 
 ops.testing.SIMULATE_CAN_CONNECT = True
 
+_uuid = uuid4()
+
 SCRAPE_METADATA = {
     "model": "test-model",
-    "model_uuid": "abcdef",
+    "model_uuid": str(_uuid),
     "application": "profiled-app",
     "charm_name": "test-charm",
 }
 SCRAPE_JOBS = [
     {
         "global": {"scrape_interval": "1h"},
-        "rule_files": ["/some/file"],
-        "file_sd_configs": [{"files": "*some-files*"}],
         "job_name": "my-first-job",
-        "metrics_path": "/one-path",
         "static_configs": [{"targets": ["*:7000"], "labels": {"some-key": "some-value"}}],
     },
 ]
@@ -45,6 +45,7 @@ class TestCharm(unittest.TestCase):
         self.harness = Harness(ParcaOperatorCharm)
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
+        self.maxDiff = None
 
     @patch("charm.Parca.install", lambda _: True)
     @patch("charm.Parca.version", "v0.12.0")
@@ -133,21 +134,20 @@ class TestCharm(unittest.TestCase):
             rel_id,
             "profiled-app/0",
             {
-                "prometheus_scrape_unit_address": "1.1.1.1",
-                "prometheus_scrape_unit_name": "profiled-app/0",
+                "parca_scrape_unit_address": "1.1.1.1",
+                "parca_scrape_unit_name": "profiled-app/0",
             },
         )
         # Taking into account the data provided by the simulated app, we should receive the
         # following jobs config from the profiling_consumer
         expected = [
             {
-                "metrics_path": "/one-path",
                 "static_configs": [
                     {
                         "labels": {
                             "some-key": "some-value",
                             "juju_model": "test-model",
-                            "juju_model_uuid": "abcdef",
+                            "juju_model_uuid": str(_uuid),
                             "juju_application": "profiled-app",
                             "juju_charm": "test-charm",
                             "juju_unit": "profiled-app/0",
@@ -155,7 +155,7 @@ class TestCharm(unittest.TestCase):
                         "targets": ["1.1.1.1:7000"],
                     }
                 ],
-                "job_name": "juju_test-model_abcdef_profiled-app_test-charm_prometheus_scrape_my-first-job",
+                "job_name": f"test-model_{str(_uuid).split('-')[0]}_profiled-app_my-first-job",
                 "relabel_configs": [
                     {
                         "source_labels": [
