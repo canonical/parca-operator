@@ -28,17 +28,6 @@ class TestCharm(unittest.TestCase):
         )
         self.assertEqual(str(parca_config), expected)
 
-    def test_parca_config_with_scrape_config_strip_metrics_path(self):
-        parca_config = ParcaConfig(
-            [{"metrics_path": "foobar", "foobar": "bazqux"}], profile_path="/tmp"
-        )
-        # The metric_path attribute should be stripped from the scrape configs
-        expected = {
-            "object_storage": {"bucket": {"type": "FILESYSTEM", "config": {"directory": "/tmp"}}},
-            "scrape_configs": [{"foobar": "bazqux"}],
-        }
-        self.assertEqual(parca_config.to_dict(), expected)  #
-
     def test_parca_config_with_scrape_config(self):
         parca_config = ParcaConfig([{"foobar": "bazqux"}], profile_path="/tmp")
         expected = {

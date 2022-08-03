@@ -31,7 +31,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 3
+LIBPATCH = 4
 
 
 DEFAULT_BIN_PATH = "/parca"
@@ -86,10 +86,6 @@ class ParcaConfig:
     def __init__(self, scrape_configs=[], *, profile_path=DEFAULT_PROFILE_PATH):
         self._profile_path = str(profile_path)
         self._scrape_configs = scrape_configs
-
-        # Parca doesn't take the metrics_path attribute for its scrape config
-        for c in self._scrape_configs:
-            c.pop("metrics_path", None)
 
     @property
     def _config(self) -> dict:
