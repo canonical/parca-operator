@@ -11,6 +11,7 @@
 import json
 import unittest
 from subprocess import CalledProcessError
+from types import SimpleNamespace
 from unittest.mock import PropertyMock, patch
 from uuid import uuid4
 
@@ -174,7 +175,7 @@ class TestCharm(unittest.TestCase):
         self.assertEqual(self.harness.charm.profiling_consumer.jobs(), expected)
 
     @patch("charm.Parca.configure")
-    @patch("socket.getfqdn", new=lambda *args: "some.host")
+    @patch("ops.model.Model.get_binding", lambda *args: MockBinding("10.10.10.10"))
     def test_metrics_endpoint_relation(self, _):
         # Create a relation to an app named "prometheus"
         rel_id = self.harness.add_relation("metrics-endpoint", "prometheus")
@@ -184,7 +185,12 @@ class TestCharm(unittest.TestCase):
         unit_data = self.harness.get_relation_data(rel_id, self.harness.charm.unit.name)
         # Ensure that the unit set its targets correctly
         expected = {
-            "prometheus_scrape_unit_address": "some.host",
+            "prometheus_scrape_unit_address": "10.10.10.10",
             "prometheus_scrape_unit_name": "parca/0",
         }
         self.assertEqual(unit_data, expected)
+
+
+class MockBinding:
+    def __init__(self, addr):
+        self.network = SimpleNamespace(bind_address=addr)
