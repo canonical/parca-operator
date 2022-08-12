@@ -37,51 +37,51 @@ class TestCharm(unittest.TestCase):
         self.assertEqual(parca_config.to_dict(), expected)
 
     def test_parca_command_line_default(self):
-        config = {"storage-persist": False, "memory-storage-limit": 1024}
+        config = {"enable-persistence": False, "memory-storage-limit": 1024}
         cmd = parca_command_line(config)
         self.assertEqual(
             cmd,
-            "/parca --config-path=/etc/parca/parca.yaml --storage-in-memory=true --storage-active-memory=1073741824",
+            "/parca --config-path=/etc/parca/parca.yaml --storage-active-memory=1073741824",
         )
 
     def test_parca_command_line_custom_bin_path(self):
-        config = {"storage-persist": False, "memory-storage-limit": 1024}
+        config = {"enable-persistence": False, "memory-storage-limit": 1024}
         cmd = parca_command_line(config, bin_path="/usr/bin/parca")
         self.assertEqual(
             cmd,
-            "/usr/bin/parca --config-path=/etc/parca/parca.yaml --storage-in-memory=true --storage-active-memory=1073741824",
+            "/usr/bin/parca --config-path=/etc/parca/parca.yaml --storage-active-memory=1073741824",
         )
 
     def test_parca_command_line_custom_config_path(self):
-        config = {"storage-persist": False, "memory-storage-limit": 1024}
+        config = {"enable-persistence": False, "memory-storage-limit": 1024}
         cmd = parca_command_line(config, config_path="/tmp/config.yaml")
         self.assertEqual(
             cmd,
-            "/parca --config-path=/tmp/config.yaml --storage-in-memory=true --storage-active-memory=1073741824",
+            "/parca --config-path=/tmp/config.yaml --storage-active-memory=1073741824",
         )
 
     def test_parca_command_line_memory_limit(self):
-        config = {"storage-persist": False, "memory-storage-limit": 2048}
+        config = {"enable-persistence": False, "memory-storage-limit": 2048}
         cmd = parca_command_line(config)
         self.assertEqual(
             cmd,
-            "/parca --config-path=/etc/parca/parca.yaml --storage-in-memory=true --storage-active-memory=2147483648",
+            "/parca --config-path=/etc/parca/parca.yaml --storage-active-memory=2147483648",
         )
 
     def test_parca_command_line_storage_persist(self):
-        config = {"storage-persist": True, "memory-storage-limit": 2048}
+        config = {"enable-persistence": True, "memory-storage-limit": 2048}
         cmd = parca_command_line(config)
         self.assertEqual(
             cmd,
-            "/parca --config-path=/etc/parca/parca.yaml --storage-in-memory=false --storage-persist --storage-path=/var/lib/parca",
+            "/parca --config-path=/etc/parca/parca.yaml --enable-persistence --storage-path=/var/lib/parca",
         )
 
     def test_parca_command_line_storage_persist_custom_profile_path(self):
-        config = {"storage-persist": True, "memory-storage-limit": 2048}
+        config = {"enable-persistence": True, "memory-storage-limit": 2048}
         cmd = parca_command_line(config, profile_path="/tmp")
         self.assertEqual(
             cmd,
-            "/parca --config-path=/etc/parca/parca.yaml --storage-in-memory=false --storage-persist --storage-path=/tmp",
+            "/parca --config-path=/etc/parca/parca.yaml --enable-persistence --storage-path=/tmp",
         )
 
     def test_parse_version_next(self):

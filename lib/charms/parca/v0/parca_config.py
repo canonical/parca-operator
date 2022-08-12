@@ -31,7 +31,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 4
+LIBPATCH = 5
 
 
 DEFAULT_BIN_PATH = "/parca"
@@ -57,14 +57,12 @@ def parca_command_line(
     cmd = [str(bin_path), f"--config-path={config_path}"]
 
     # Render the template files with the correct values
-    if app_config["storage-persist"]:
+    if app_config["enable-persistence"]:
         # Add the correct command line options for disk persistence
-        cmd.append("--storage-in-memory=false")
-        cmd.append("--storage-persist")
+        cmd.append("--enable-persistence")
         cmd.append(f"--storage-path={profile_path}")
     else:
         limit = app_config["memory-storage-limit"] * 1048576
-        cmd.append("--storage-in-memory=true")
         cmd.append(f"--storage-active-memory={limit}")
 
     return " ".join(cmd)
