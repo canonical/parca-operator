@@ -47,11 +47,11 @@ class Parca:
     def configure(self, app_config, scrape_configs=[], restart=True):
         """Configure Parca on the host system. Restart Parca by default."""
         # Configure the snap appropriately
-        if app_config["storage-persist"]:
-            self._snap.set({"storage-persist": "true"})
+        if app_config["enable-persistence"]:
+            self._snap.set({"enable-persistence": "true"})
         else:
             limit = app_config["memory-storage-limit"] * 1048576
-            self._snap.set({"storage-persist": "false", "storage-active-memory": limit})
+            self._snap.set({"enable-persistence": "false", "storage-active-memory": limit})
 
         # Write the config file
         parca_config = ParcaConfig(scrape_configs)

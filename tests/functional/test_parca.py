@@ -10,7 +10,7 @@ from charms.parca.v0.parca_config import ParcaConfig
 from parca import Parca
 
 DEFAULT_PARCA_CONFIG = {
-    "storage-persist": False,
+    "enable-persistence": False,
     "memory-storage-limit": 1024,
 }
 
@@ -46,12 +46,12 @@ class TestParca(unittest.TestCase):
         self.assertFalse(self.parca.installed)
 
     def test_configure_systemd_storage_persist(self):
-        self.parca.configure({"storage-persist": True})
-        self.assertEqual(self.parca._snap.get("storage-persist"), "true")
+        self.parca.configure({"enable-persistence": True})
+        self.assertEqual(self.parca._snap.get("enable-persistence"), "true")
 
     def test_configure_systemd_storage_in_memory(self):
         self.parca.configure(DEFAULT_PARCA_CONFIG)
-        self.assertEqual(self.parca._snap.get("storage-persist"), "false")
+        self.assertEqual(self.parca._snap.get("enable-persistence"), "false")
         self.assertEqual(self.parca._snap.get("storage-active-memory"), "1073741824")
 
     def test_configure_parca_no_scrape_jobs(self):

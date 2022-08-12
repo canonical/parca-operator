@@ -89,7 +89,7 @@ class TestCharm(unittest.TestCase):
     @patch("charm.Parca.configure")
     def test_config_changed(self, configure):
         config = {
-            "storage-persist": False,
+            "enable-persistence": False,
             "memory-storage-limit": 1024,
         }
         self.harness.update_config(config)
