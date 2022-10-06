@@ -29,9 +29,27 @@ jobs:
       - name: Run tests
         run: tox -e unit
 
+  lib-check:
+    name: Check libraries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Check libs
+        uses: canonical/charming-actions/check-libraries@2.0.0
+        with:
+          credentials: "${{ secrets.CHARMHUB_TOKEN }}"
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
   functional-test:
     name: Functional tests
     runs-on: ubuntu-latest
+    needs:
+      - lib-check
+      - unit-test
+      - lint
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -46,6 +64,10 @@ jobs:
   integration-test:
     name: Integration tests (lxd)
     runs-on: ubuntu-latest
+    needs:
+      - lib-check
+      - unit-test
+      - lint
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -55,17 +77,3 @@ jobs:
           provider: lxd
       - name: Run integration tests
         run: tox -e integration
-
-  lib-check:
-    name: Check libraries
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: Check libs
-        uses: canonical/charming-actions/check-libraries@2.0.0-rc
-        with:
-          credentials: "${{ secrets.CHARMHUB_TOKEN }}"
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
