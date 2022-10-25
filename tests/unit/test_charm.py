@@ -181,6 +181,9 @@ class TestCharm(unittest.TestCase):
         rel_id = self.harness.add_relation("metrics-endpoint", "prometheus")
         # Add a prometheus unit
         self.harness.add_relation_unit(rel_id, "prometheus/0")
+        # Ugly re-init workaround: manually call `_set_scrape_job_spec`
+        # https://github.com/canonical/operator/issues/736
+        self.harness.charm.metrics_endpoint_provider._set_scrape_job_spec()
         # Grab the unit data from the relation
         unit_data = self.harness.get_relation_data(rel_id, self.harness.charm.unit.name)
         # Ensure that the unit set its targets correctly
