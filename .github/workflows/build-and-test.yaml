@@ -45,7 +45,7 @@ jobs:
 
   functional-test:
     name: Functional tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs:
       - lib-check
       - unit-test
