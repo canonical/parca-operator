@@ -40,7 +40,11 @@ async def test_application_is_up(ops_test: OpsTest):
 @mark.abort_on_fail
 async def test_profiling_endpoint_relation(ops_test: OpsTest):
     await asyncio.gather(
-        ops_test.model.deploy("juju-introspect", channel="edge", to="0", series="jammy"),
+        # The below should work, but blocking on https://github.com/juju/python-libjuju/issues/759
+        # ops_test.model.deploy("juju-introspect", channel="edge", to="0", series="jammy"),
+        ops_test.juju(
+            "deploy", "juju-introspect", "--channel", "edge", "--to", "0", "--series", "jammy"
+        ),
         ops_test.model.wait_for_idle(
             apps=["juju-introspect"], status="active", raise_on_blocked=True, timeout=1000
         ),
