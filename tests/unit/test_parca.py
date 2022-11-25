@@ -5,7 +5,6 @@ import unittest
 from unittest.mock import patch
 
 from charms.operator_libs_linux.v1 import snap
-
 from parca import Parca
 
 
