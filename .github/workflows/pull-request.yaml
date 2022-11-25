@@ -8,6 +8,10 @@ on:
       - ".github/workflows/update-libs.yaml"
       - ".gitignore"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     uses: ./.github/workflows/build-and-test.yaml
