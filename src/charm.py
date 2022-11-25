@@ -9,15 +9,11 @@ from subprocess import CalledProcessError, check_call
 
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.operator_libs_linux.v1 import snap
-from charms.parca.v0.parca_scrape import (
-    ProfilingEndpointConsumer,
-    ProfilingEndpointProvider,
-)
+from charms.parca.v0.parca_scrape import ProfilingEndpointConsumer, ProfilingEndpointProvider
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
-
 from parca import Parca
 
 logger = logging.getLogger(__name__)
