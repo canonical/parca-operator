@@ -74,7 +74,7 @@ class ParcaOperatorCharm(CharmBase):
             self.unit.status = BlockedStatus(str(e))
 
     def _update_status(self, _):
-        """Performed on an interval dictated by model config."""
+        """Handle the update status hook (on an interval dictated by model config)."""
         # Ensure the hold is extended to make sure the snap never auto-refreshes
         # out of our control
         snap.hold_refresh()

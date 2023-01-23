@@ -95,7 +95,7 @@ class ParcaConfig:
         }
 
     def to_dict(self) -> dict:
-        """Returns the Parca config as a Python dictionary."""
+        """Return the Parca config as a Python dictionary."""
         return self._config
 
     def __str__(self) -> str:

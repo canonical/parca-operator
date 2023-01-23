@@ -1,7 +1,7 @@
 # Copyright 2022 Jon Seager
 # See LICENSE file for licensing details.
 
-"""Represents Parca on a host system. Provides a Parca class."""
+"""Control Parca on a host system. Provides a Parca class."""
 
 import logging
 from subprocess import check_output
@@ -18,7 +18,7 @@ class Parca:
     CONFIG_PATH = "/var/snap/parca/current/parca.yaml"
 
     def install(self):
-        """Installs the Parca snap package."""
+        """Install the Parca snap package."""
         try:
             self._snap.ensure(snap.SnapState.Latest, channel="edge")
             snap.hold_refresh()
@@ -28,7 +28,7 @@ class Parca:
             raise e
 
     def refresh(self):
-        """Refreshes the Parca snap if there is a new revision."""
+        """Refresh the Parca snap if there is a new revision."""
         # The operation here is exactly the same, so just call the install method
         self.install()
 
@@ -41,7 +41,7 @@ class Parca:
         self._snap.stop(disable=True)
 
     def remove(self):
-        """Removes the Parca snap, preserving config and data."""
+        """Remove the Parca snap, preserving config and data."""
         self._snap.ensure(snap.SnapState.Absent)
 
     def configure(self, app_config, scrape_configs=[], restart=True):
@@ -64,17 +64,17 @@ class Parca:
 
     @property
     def installed(self):
-        """Reports if the Parca snap is installed."""
+        """Report if the Parca snap is installed."""
         return self._snap.present
 
     @property
     def running(self):
-        """Reports if the 'parca-svc' snap service is running."""
+        """Report if the 'parca-svc' snap service is running."""
         return self._snap.services["parca-svc"]["active"]
 
     @property
     def version(self) -> str:
-        """Reports the version of Parca currently installed."""
+        """Report the version of Parca currently installed."""
         if self.installed:
             results = check_output(["parca", "--version"]).decode()
             return parse_version(results)
@@ -82,6 +82,6 @@ class Parca:
 
     @property
     def _snap(self):
-        """Returns a representation of the Parca snap."""
+        """Return a representation of the Parca snap."""
         cache = snap.SnapCache()
         return cache["parca"]
