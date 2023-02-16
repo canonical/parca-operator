@@ -20,7 +20,7 @@ class Parca:
     def install(self):
         """Install the Parca snap package."""
         try:
-            self._snap.ensure(snap.SnapState.Latest, channel="edge")
+            self._snap.ensure(snap.SnapState.Latest, channel="stable")
             snap.hold_refresh()
         except snap.SnapError as e:
             logger.error("could not install parca. Reason: %s", e.message)
