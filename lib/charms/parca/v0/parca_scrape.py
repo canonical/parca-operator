@@ -504,7 +504,6 @@ class ProfilingEndpointConsumer(Object):
         """Construct labeled job configuration for a single job.
 
         Args:
-
             job: a dictionary representing the job configuration as obtained from
                 `ProfilingEndpointProvider` over relation data.
             job_name_prefix: a string that may either be used as the
