@@ -7,19 +7,17 @@
 import logging
 from subprocess import CalledProcessError, check_call
 
+import ops
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.operator_libs_linux.v1 import snap
 from charms.parca.v0.parca_scrape import ProfilingEndpointConsumer, ProfilingEndpointProvider
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
-from ops.charm import CharmBase
-from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from parca import Parca
 
 logger = logging.getLogger(__name__)
 
 
-class ParcaOperatorCharm(CharmBase):
+class ParcaOperatorCharm(ops.CharmBase):
     """Charmed Operator to deploy Parca - a continuous profiling tool."""
 
     def __init__(self, *args):
@@ -58,20 +56,20 @@ class ParcaOperatorCharm(CharmBase):
 
     def _install(self, _):
         """Install dependencies for Parca and ensure initial configs are written."""
-        self.unit.status = MaintenanceStatus("installing parca")
+        self.unit.status = ops.MaintenanceStatus("installing parca")
         try:
             self.parca.install()
             self.unit.set_workload_version(self.parca.version)
         except snap.SnapError as e:
-            self.unit.status = BlockedStatus(str(e))
+            self.unit.status = ops.BlockedStatus(str(e))
 
     def _upgrade_charm(self, _):
         """Ensure the snap is refreshed (in channel) if there are new revisions."""
-        self.unit.status = MaintenanceStatus("refreshing parca")
+        self.unit.status = ops.MaintenanceStatus("refreshing parca")
         try:
             self.parca.refresh()
         except snap.SnapError as e:
-            self.unit.status = BlockedStatus(str(e))
+            self.unit.status = ops.BlockedStatus(str(e))
 
     def _update_status(self, _):
         """Handle the update status hook (on an interval dictated by model config)."""
@@ -84,25 +82,25 @@ class ParcaOperatorCharm(CharmBase):
         """Start Parca."""
         self.parca.start()
         self._open_port()
-        self.unit.status = ActiveStatus()
+        self.unit.status = ops.ActiveStatus()
 
     def _config_changed(self, _):
         """Update the configuration files, restart parca."""
-        self.unit.status = MaintenanceStatus("reconfiguring parca")
+        self.unit.status = ops.MaintenanceStatus("reconfiguring parca")
         scrape_config = self.profiling_consumer.jobs()
         self.parca.configure(self.config, scrape_config)
-        self.unit.status = ActiveStatus()
+        self.unit.status = ops.ActiveStatus()
 
     def _remove(self, _):
         """Remove Parca from the machine."""
-        self.unit.status = MaintenanceStatus("removing parca")
+        self.unit.status = ops.MaintenanceStatus("removing parca")
         self.parca.remove()
 
     def _on_profiling_targets_changed(self, _):
         """Update the Parca scrape configuration according to present relations."""
-        self.unit.status = MaintenanceStatus("reconfiguring parca")
+        self.unit.status = ops.MaintenanceStatus("reconfiguring parca")
         self.parca.configure(self.config, self.profiling_consumer.jobs())
-        self.unit.status = ActiveStatus()
+        self.unit.status = ops.ActiveStatus()
 
     def _open_port(self) -> bool:
         """Ensure that Juju opens the correct TCP port for the Parca Dashboard."""
@@ -116,4 +114,4 @@ class ParcaOperatorCharm(CharmBase):
 
 
 if __name__ == "__main__":  # pragma: nocover
-    main(ParcaOperatorCharm)
+    ops.main(ParcaOperatorCharm)
