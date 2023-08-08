@@ -21,3 +21,5 @@ provides:
     interface: parca_scrape
   grafana-dashboard:
     interface: grafana_dashboard
+  parca-store-endpoint:
+    interface: parca_store

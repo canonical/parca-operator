@@ -55,10 +55,13 @@ class TestParca(unittest.TestCase):
 
     def test_configure_parca_no_scrape_jobs(self):
         self.parca.configure(DEFAULT_PARCA_CONFIG)
-        config = ParcaConfig([])
+        config = ParcaConfig([], profile_path="/var/snap/parca/current/profiles")
         self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(config)))
 
     def test_configure_parca_simple_scrape_jobs(self):
         self.parca.configure(DEFAULT_PARCA_CONFIG, [{"metrics_path": "foobar", "bar": "baz"}])
-        config = ParcaConfig([{"metrics_path": "foobar", "bar": "baz"}])
+        config = ParcaConfig(
+            [{"metrics_path": "foobar", "bar": "baz"}],
+            profile_path="/var/snap/parca/current/profiles",
+        )
         self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(config)))
