@@ -16,6 +16,7 @@ class Parca:
     """Class representing Parca on a host system."""
 
     CONFIG_PATH = "/var/snap/parca/current/parca.yaml"
+    PROFILE_PATH = "/var/snap/parca/current/profiles"
 
     def install(self):
         """Install the Parca snap package."""
@@ -54,7 +55,7 @@ class Parca:
             self._snap.set({"enable-persistence": "false", "storage-active-memory": limit})
 
         # Write the config file
-        parca_config = ParcaConfig(scrape_configs)
+        parca_config = ParcaConfig(scrape_configs, profile_path=self.PROFILE_PATH)
         with open(self.CONFIG_PATH, "w+") as f:
             f.write(str(parca_config))
 
