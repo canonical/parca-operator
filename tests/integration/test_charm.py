@@ -65,3 +65,23 @@ async def test_relation_is_configured(ops_test: OpsTest):
     address = status["applications"][PARCA]["units"][unit]["public-address"]
     response = requests.get(f"http://{address}:7070/metrics")
     assert "juju-introspect" in response.text
+
+
+@mark.abort_on_fail
+@mark.skip_if_deployed
+async def test_parca_store_relation(ops_test: OpsTest):
+    await asyncio.gather(
+        ops_test.model.deploy("parca-agent", num_units=0, channel="edge"),
+        ops_test.model.deploy("ubuntu-lite", channel="stable", series="jammy"),
+        ops_test.model.wait_for_idle(apps=["ubuntu-lite"], status="active", timeout=1000),
+    )
+    await asyncio.gather(
+        ops_test.model.integrate("ubuntu-lite", "parca-agent"),
+        ops_test.model.wait_for_idle(
+            apps=["parca-agent", "ubuntu-lite"], status="active", timeout=1000
+        ),
+    )
+    await asyncio.gather(
+        ops_test.model.integrate(PARCA, "parca-agent"),
+        ops_test.model.wait_for_idle(apps=["parca-agent", PARCA], status="active", timeout=1000),
+    )
