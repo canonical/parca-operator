@@ -192,6 +192,23 @@ class TestCharm(unittest.TestCase):
         }
         self.assertEqual(unit_data, expected)
 
+    @patch("charm.Parca.configure")
+    @patch("ops.model.Model.get_binding", lambda *args: MockBinding("10.10.10.10"))
+    def test_parca_store_relation(self, _):
+        self.harness.set_leader(True)
+        # Create a relation to an app named "parca-agent"
+        rel_id = self.harness.add_relation("parca-store-endpoint", "parca-agent")
+        # Add a parca-agent unit
+        self.harness.add_relation_unit(rel_id, "parca-agent/0")
+        # Grab the unit data from the relation
+        unit_data = self.harness.get_relation_data(rel_id, self.harness.charm.app.name)
+        # Ensure that the unit set its targets correctly
+        expected = {
+            "remote-store-address": "10.10.10.10:7070",
+            "remote-store-insecure": "true",
+        }
+        self.assertEqual(unit_data, expected)
+
 
 class MockBinding:
     def __init__(self, addr):

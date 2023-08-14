@@ -2,7 +2,7 @@
 # Copyright 2022 Jon Seager
 # See LICENSE file for licensing details.
 
-"""Charmed Operator to deploy Parca - a continuous profiling tool."""
+"""Charm for Parca - a continuous profiling tool."""
 
 import logging
 from subprocess import CalledProcessError, check_call
@@ -11,6 +11,7 @@ import ops
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.operator_libs_linux.v1 import snap
 from charms.parca.v0.parca_scrape import ProfilingEndpointConsumer, ProfilingEndpointProvider
+from charms.parca.v0.parca_store import ParcaStoreEndpointProvider
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from parca import Parca
 
@@ -49,6 +50,10 @@ class ParcaOperatorCharm(ops.CharmBase):
             self,
             jobs=[{"static_configs": [{"targets": ["*:7070"]}]}],
             relation_name="self-profiling-endpoint",
+        )
+
+        self.parca_store_endpoint = ParcaStoreEndpointProvider(
+            charm=self, port=7070, insecure=True
         )
 
         # Allow Parca to provide dashboards to Grafana over a relation
