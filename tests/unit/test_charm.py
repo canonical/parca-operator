@@ -193,9 +193,7 @@ class TestCharm(unittest.TestCase):
         self.assertEqual(unit_data, expected)
 
     @patch("ops.model.Model.get_binding", lambda *args: MockBinding("10.10.10.10"))
-    def test_parca_store_relation(
-        self,
-    ):
+    def test_parca_store_relation(self):
         self.harness.set_leader(True)
         # Create a relation to an app named "parca-agent"
         rel_id = self.harness.add_relation("parca-store-endpoint", "parca-agent")
