@@ -4,8 +4,10 @@
 """Control Parca on a host system. Provides a Parca class."""
 
 import logging
+from pathlib import Path
 from subprocess import check_output
 
+import yaml
 from charms.operator_libs_linux.v1 import snap
 from charms.parca.v0.parca_config import ParcaConfig, parse_version
 
@@ -65,10 +67,17 @@ class Parca:
                 self._snap.set({"remote-store-insecure": insecure})
 
         if scrape_config:
-            # Write the config file
+            # If the scrape configs are explicitly set, then build the config from new
             parca_config = ParcaConfig(scrape_config, profile_path=self.PROFILE_PATH)
-            with open(self.CONFIG_PATH, "w+") as f:
-                f.write(str(parca_config))
+        else:
+            # Otherwise grab existing scrape jobs and build a config to include them
+            old = yaml.safe_load(Path(self.CONFIG_PATH).read_text())
+            parca_config = ParcaConfig(
+                old.get("scrape_configs", []), profile_path=self.PROFILE_PATH
+            )
+
+        with open(self.CONFIG_PATH, "w+") as f:
+            f.write(str(parca_config))
 
         # Restart the snap service
         if restart:

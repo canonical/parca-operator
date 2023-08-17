@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from subprocess import check_call
 
+import yaml
 from charms.parca.v0.parca_config import ParcaConfig
 from parca import Parca
 
@@ -55,7 +56,10 @@ class TestParca(unittest.TestCase):
 
     def test_configure_parca_no_scrape_jobs(self):
         self.parca.configure(app_config=DEFAULT_PARCA_CONFIG)
-        config = ParcaConfig([], profile_path="/var/snap/parca/current/profiles")
+        old = yaml.safe_load(Path(self.parca.CONFIG_PATH).read_text())
+        config = ParcaConfig(
+            old.get("scrape_configs", []), profile_path="/var/snap/parca/current/profiles"
+        )
         self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(config)))
 
     def test_configure_parca_simple_scrape_jobs(self):
@@ -109,11 +113,11 @@ class TestParca(unittest.TestCase):
             app_config=DEFAULT_PARCA_CONFIG,
             scrape_config=[{"metrics_path": "foobar", "bar": "baz"}],
         )
-        config = ParcaConfig(
+        expected = ParcaConfig(
             [{"metrics_path": "foobar", "bar": "baz"}],
             profile_path="/var/snap/parca/current/profiles",
         )
-        self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(config)))
+        self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(expected)))
 
         # Setup some store config
         self.parca.configure(
@@ -128,4 +132,4 @@ class TestParca(unittest.TestCase):
         self.assertEqual(self.parca._snap.get("remote-store-bearer-token"), "deadbeef")
         self.assertEqual(self.parca._snap.get("remote-store-insecure"), "false")
 
-        self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(config)))
+        self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(expected)))
