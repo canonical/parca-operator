@@ -4,8 +4,10 @@
 """Control Parca on a host system. Provides a Parca class."""
 
 import logging
+from pathlib import Path
 from subprocess import check_output
 
+import yaml
 from charms.operator_libs_linux.v1 import snap
 from charms.parca.v0.parca_config import ParcaConfig, parse_version
 
@@ -21,7 +23,7 @@ class Parca:
     def install(self):
         """Install the Parca snap package."""
         try:
-            self._snap.ensure(snap.SnapState.Latest, channel="stable")
+            self._snap.ensure(snap.SnapState.Latest, channel="edge")
             snap.hold_refresh()
         except snap.SnapError as e:
             logger.error("could not install parca. Reason: %s", e.message)
@@ -45,17 +47,35 @@ class Parca:
         """Remove the Parca snap, preserving config and data."""
         self._snap.ensure(snap.SnapState.Absent)
 
-    def configure(self, app_config, scrape_configs=[], restart=True):
+    def configure(self, *, app_config=None, scrape_config=None, store_config=None, restart=True):
         """Configure Parca on the host system. Restart Parca by default."""
-        # Configure the snap appropriately
-        if app_config["enable-persistence"]:
-            self._snap.set({"enable-persistence": "true"})
-        else:
-            limit = app_config["memory-storage-limit"] * 1048576
-            self._snap.set({"enable-persistence": "false", "storage-active-memory": limit})
+        if app_config:
+            if app_config.get("enable-persistence", None):
+                self._snap.set({"enable-persistence": "true"})
+            else:
+                limit = app_config["memory-storage-limit"] * 1048576
+                self._snap.set({"enable-persistence": "false", "storage-active-memory": limit})
 
-        # Write the config file
-        parca_config = ParcaConfig(scrape_configs, profile_path=self.PROFILE_PATH)
+        if store_config:
+            if addr := store_config.get("remote-store-address", None):
+                self._snap.set({"remote-store-address": addr})
+
+            if token := store_config.get("remote-store-bearer-token", None):
+                self._snap.set({"remote-store-bearer-token": token})
+
+            if insecure := store_config.get("remote-store-insecure", None):
+                self._snap.set({"remote-store-insecure": insecure})
+
+        if scrape_config:
+            # If the scrape configs are explicitly set, then build the config from new
+            parca_config = ParcaConfig(scrape_config, profile_path=self.PROFILE_PATH)
+        else:
+            # Otherwise grab existing scrape jobs and build a config to include them
+            old = yaml.safe_load(Path(self.CONFIG_PATH).read_text())
+            parca_config = ParcaConfig(
+                old.get("scrape_configs", []), profile_path=self.PROFILE_PATH
+            )
+
         with open(self.CONFIG_PATH, "w+") as f:
             f.write(str(parca_config))
 

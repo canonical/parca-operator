@@ -13,6 +13,8 @@ description: |
 requires:
   profiling-endpoint:
     interface: parca_scrape
+  external-parca-store-endpoint:
+    interface: parca_store
 
 provides:
   metrics-endpoint:
