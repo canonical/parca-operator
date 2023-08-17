@@ -92,7 +92,7 @@ class TestCharm(unittest.TestCase):
             "memory-storage-limit": 1024,
         }
         self.harness.update_config(config)
-        configure.assert_called_with(config, [])
+        configure.assert_called_with(app_config=config, scrape_config=[])
         self.assertEqual(self.harness.charm.unit.status, ActiveStatus())
 
     @patch("charm.Parca.remove")
@@ -192,9 +192,10 @@ class TestCharm(unittest.TestCase):
         }
         self.assertEqual(unit_data, expected)
 
-    @patch("charm.Parca.configure")
     @patch("ops.model.Model.get_binding", lambda *args: MockBinding("10.10.10.10"))
-    def test_parca_store_relation(self, _):
+    def test_parca_store_relation(
+        self,
+    ):
         self.harness.set_leader(True)
         # Create a relation to an app named "parca-agent"
         rel_id = self.harness.add_relation("parca-store-endpoint", "parca-agent")
@@ -208,6 +209,26 @@ class TestCharm(unittest.TestCase):
             "remote-store-insecure": "true",
         }
         self.assertEqual(unit_data, expected)
+
+    @patch("charm.Parca.configure")
+    @patch("ops.model.Model.get_binding", lambda *args: MockBinding("10.10.10.10"))
+    def test_parca_external_store_relation(self, configure):
+        self.harness.set_leader(True)
+        # Create a relation to an app named "polar-signals-cloud"
+        rel_id = self.harness.add_relation("external-parca-store-endpoint", "polar-signals-cloud")
+        # Add a polar-signals-cloud unit
+        self.harness.add_relation_unit(rel_id, "polar-signals-cloud/0")
+        # Set some data from the remote application
+        store_config = {
+            "remote-store-address": "grpc.polarsignals.com:443",
+            "remote-store-bearer-token": "deadbeef",
+            "remote-store-insecure": "false",
+        }
+        self.harness.update_relation_data(rel_id, "polar-signals-cloud", store_config)
+
+        # Ensure that we call the configure method on Parca with the correct store details
+        configure.assert_called_with(store_config=store_config)
+        self.assertEqual(self.harness.charm.unit.status, ActiveStatus())
 
 
 class MockBinding:

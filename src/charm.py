@@ -33,6 +33,11 @@ class ParcaOperatorCharm(ops.CharmBase):
         self.framework.observe(self.on.remove, self._remove)
         self.framework.observe(self.on.update_status, self._update_status)
 
+        # Enable the option to send profiles to a remote store (i.e. Polar Signals Cloud)
+        self.framework.observe(
+            self.on.external_parca_store_endpoint_relation_changed, self._configure_remote_store
+        )
+
         # The profiling_consumer handles the relation that allows Parca to scrape other apps in the
         # model that provide a "profiling-endpoint" relation
         self.profiling_consumer = ProfilingEndpointConsumer(self)
@@ -52,6 +57,7 @@ class ParcaOperatorCharm(ops.CharmBase):
             relation_name="self-profiling-endpoint",
         )
 
+        # Enable Parca Agents to use this Parca instance as a remote store
         self.parca_store_endpoint = ParcaStoreEndpointProvider(
             charm=self, port=7070, insecure=True
         )
@@ -93,7 +99,15 @@ class ParcaOperatorCharm(ops.CharmBase):
         """Update the configuration files, restart parca."""
         self.unit.status = ops.MaintenanceStatus("reconfiguring parca")
         scrape_config = self.profiling_consumer.jobs()
-        self.parca.configure(self.config, scrape_config)
+        self.parca.configure(app_config=self.config, scrape_config=scrape_config)
+        self.unit.status = ops.ActiveStatus()
+
+    def _configure_remote_store(self, event):
+        """Configure store with credentials passed over parca-external-store-endpoint relation."""
+        self.unit.status = ops.MaintenanceStatus("reconfiguring parca")
+        rel_data = event.relation.data[event.relation.app]
+        rel_keys = ["remote-store-address", "remote-store-bearer-token", "remote-store-insecure"]
+        self.parca.configure(store_config={k: rel_data.get(k, "") for k in rel_keys})
         self.unit.status = ops.ActiveStatus()
 
     def _remove(self, _):
@@ -104,7 +118,7 @@ class ParcaOperatorCharm(ops.CharmBase):
     def _on_profiling_targets_changed(self, _):
         """Update the Parca scrape configuration according to present relations."""
         self.unit.status = ops.MaintenanceStatus("reconfiguring parca")
-        self.parca.configure(self.config, self.profiling_consumer.jobs())
+        self.parca.configure(app_config=self.config, scrape_config=self.profiling_consumer.jobs())
         self.unit.status = ops.ActiveStatus()
 
     def _open_port(self) -> bool:

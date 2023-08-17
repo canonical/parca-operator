@@ -45,19 +45,30 @@ class Parca:
         """Remove the Parca snap, preserving config and data."""
         self._snap.ensure(snap.SnapState.Absent)
 
-    def configure(self, app_config, scrape_configs=[], restart=True):
+    def configure(self, *, app_config=None, scrape_config=None, store_config=None, restart=True):
         """Configure Parca on the host system. Restart Parca by default."""
-        # Configure the snap appropriately
-        if app_config["enable-persistence"]:
-            self._snap.set({"enable-persistence": "true"})
-        else:
-            limit = app_config["memory-storage-limit"] * 1048576
-            self._snap.set({"enable-persistence": "false", "storage-active-memory": limit})
+        if app_config:
+            if app_config.get("enable-persistence", None):
+                self._snap.set({"enable-persistence": "true"})
+            else:
+                limit = app_config["memory-storage-limit"] * 1048576
+                self._snap.set({"enable-persistence": "false", "storage-active-memory": limit})
 
-        # Write the config file
-        parca_config = ParcaConfig(scrape_configs, profile_path=self.PROFILE_PATH)
-        with open(self.CONFIG_PATH, "w+") as f:
-            f.write(str(parca_config))
+        if store_config:
+            if addr := store_config.get("remote-store-address", None):
+                self._snap.set({"remote-store-address": addr})
+
+            if token := store_config.get("remote-store-bearer-token", None):
+                self._snap.set({"remote-store-bearer-token": token})
+
+            if insecure := store_config.get("remote-store-insecure", None):
+                self._snap.set({"remote-store-insecure": insecure})
+
+        if scrape_config:
+            # Write the config file
+            parca_config = ParcaConfig(scrape_config, profile_path=self.PROFILE_PATH)
+            with open(self.CONFIG_PATH, "w+") as f:
+                f.write(str(parca_config))
 
         # Restart the snap service
         if restart:
