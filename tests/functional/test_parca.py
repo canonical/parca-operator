@@ -45,21 +45,24 @@ class TestParca(unittest.TestCase):
         self.assertFalse(self.parca.installed)
 
     def test_configure_systemd_storage_persist(self):
-        self.parca.configure({"enable-persistence": True})
+        self.parca.configure(app_config={"enable-persistence": True})
         self.assertEqual(self.parca._snap.get("enable-persistence"), "true")
 
     def test_configure_systemd_storage_in_memory(self):
-        self.parca.configure(DEFAULT_PARCA_CONFIG)
+        self.parca.configure(app_config=DEFAULT_PARCA_CONFIG)
         self.assertEqual(self.parca._snap.get("enable-persistence"), "false")
         self.assertEqual(self.parca._snap.get("storage-active-memory"), "1073741824")
 
     def test_configure_parca_no_scrape_jobs(self):
-        self.parca.configure(DEFAULT_PARCA_CONFIG)
+        self.parca.configure(app_config=DEFAULT_PARCA_CONFIG)
         config = ParcaConfig([], profile_path="/var/snap/parca/current/profiles")
         self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(config)))
 
     def test_configure_parca_simple_scrape_jobs(self):
-        self.parca.configure(DEFAULT_PARCA_CONFIG, [{"metrics_path": "foobar", "bar": "baz"}])
+        self.parca.configure(
+            app_config=DEFAULT_PARCA_CONFIG,
+            scrape_config=[{"metrics_path": "foobar", "bar": "baz"}],
+        )
         config = ParcaConfig(
             [{"metrics_path": "foobar", "bar": "baz"}],
             profile_path="/var/snap/parca/current/profiles",
