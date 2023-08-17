@@ -68,3 +68,64 @@ class TestParca(unittest.TestCase):
             profile_path="/var/snap/parca/current/profiles",
         )
         self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(config)))
+
+    def test_configure_parca_store_config(self):
+        self.parca.configure(
+            store_config={
+                "remote-store-address": "grpc.polarsignals.com:443",
+                "remote-store-bearer-token": "deadbeef",
+                "remote-store-insecure": "false",
+            }
+        )
+        self.assertEqual(self.parca._snap.get("remote-store-address"), "grpc.polarsignals.com:443")
+        self.assertEqual(self.parca._snap.get("remote-store-bearer-token"), "deadbeef")
+        self.assertEqual(self.parca._snap.get("remote-store-insecure"), "false")
+
+    def test_configure_parca_store_config_no_conflict_with_app_config(self):
+        # Setup baseline config
+        self.parca.configure(app_config=DEFAULT_PARCA_CONFIG)
+        self.assertEqual(self.parca._snap.get("enable-persistence"), "false")
+        self.assertEqual(self.parca._snap.get("storage-active-memory"), "1073741824")
+
+        # Setup some store config
+        self.parca.configure(
+            store_config={
+                "remote-store-address": "grpc.polarsignals.com:443",
+                "remote-store-bearer-token": "deadbeef",
+                "remote-store-insecure": "false",
+            }
+        )
+
+        self.assertEqual(self.parca._snap.get("remote-store-address"), "grpc.polarsignals.com:443")
+        self.assertEqual(self.parca._snap.get("remote-store-bearer-token"), "deadbeef")
+        self.assertEqual(self.parca._snap.get("remote-store-insecure"), "false")
+
+        # Check we didn't mess with the app_config
+        self.assertEqual(self.parca._snap.get("enable-persistence"), "false")
+        self.assertEqual(self.parca._snap.get("storage-active-memory"), "1073741824")
+
+    def test_configure_parca_store_config_no_conflict_with_scrape_config(self):
+        self.parca.configure(
+            app_config=DEFAULT_PARCA_CONFIG,
+            scrape_config=[{"metrics_path": "foobar", "bar": "baz"}],
+        )
+        config = ParcaConfig(
+            [{"metrics_path": "foobar", "bar": "baz"}],
+            profile_path="/var/snap/parca/current/profiles",
+        )
+        self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(config)))
+
+        # Setup some store config
+        self.parca.configure(
+            store_config={
+                "remote-store-address": "grpc.polarsignals.com:443",
+                "remote-store-bearer-token": "deadbeef",
+                "remote-store-insecure": "false",
+            }
+        )
+
+        self.assertEqual(self.parca._snap.get("remote-store-address"), "grpc.polarsignals.com:443")
+        self.assertEqual(self.parca._snap.get("remote-store-bearer-token"), "deadbeef")
+        self.assertEqual(self.parca._snap.get("remote-store-insecure"), "false")
+
+        self.assertTrue(_file_content_equals_string(self.parca.CONFIG_PATH, str(config)))
