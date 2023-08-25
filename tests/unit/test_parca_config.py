@@ -70,7 +70,7 @@ class TestCharm(unittest.TestCase):
 
     def test_parca_command_line_storage_persist(self):
         config = {"enable-persistence": True, "memory-storage-limit": 2048}
-        cmd = parca_command_line(config)
+        cmd = parca_command_line(app_config=config)
         self.assertEqual(
             cmd,
             "/parca --config-path=/etc/parca/parca.yaml --enable-persistence --storage-path=/var/lib/parca",
@@ -78,10 +78,39 @@ class TestCharm(unittest.TestCase):
 
     def test_parca_command_line_storage_persist_custom_profile_path(self):
         config = {"enable-persistence": True, "memory-storage-limit": 2048}
-        cmd = parca_command_line(config, profile_path="/tmp")
+        cmd = parca_command_line(app_config=config, profile_path="/tmp")
         self.assertEqual(
             cmd,
             "/parca --config-path=/etc/parca/parca.yaml --enable-persistence --storage-path=/tmp",
+        )
+
+    def test_parca_command_line_default_no_store_config(self):
+        config = {"enable-persistence": False, "memory-storage-limit": 1024}
+        cmd = parca_command_line(app_config=config, store_config={})
+        self.assertEqual(
+            cmd,
+            "/parca --config-path=/etc/parca/parca.yaml --storage-active-memory=1073741824",
+        )
+
+    def test_parca_command_line_store_config_is_none(self):
+        config = {"enable-persistence": False, "memory-storage-limit": 1024}
+        cmd = parca_command_line(config, store_config=None)
+        self.assertEqual(
+            cmd,
+            "/parca --config-path=/etc/parca/parca.yaml --storage-active-memory=1073741824",
+        )
+
+    def test_parca_command_line_store_config(self):
+        config = {"enable-persistence": False, "memory-storage-limit": 1024}
+        store_config = {
+            "remote-store-address": "grpc.polarsignals.com:443",
+            "remote-store-bearer-token": "deadbeef",
+            "remote-store-insecure": "false",
+        }
+        cmd = parca_command_line(config, store_config=store_config)
+        self.assertEqual(
+            cmd,
+            "/parca --config-path=/etc/parca/parca.yaml --storage-active-memory=1073741824 --store-address=grpc.polarsignals.com:443 --bearer-token=deadbeef --insecure=false --mode=scraper-only",
         )
 
     def test_parse_version_next(self):
