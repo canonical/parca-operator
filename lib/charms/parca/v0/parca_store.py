@@ -106,7 +106,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 3
+LIBPATCH = 4
 
 
 DEFAULT_RELATION_NAME = "parca-store-endpoint"
@@ -280,9 +280,9 @@ class ParcaStoreEndpointRequirer(ops.Object):
         rel_data = event.relation.data[event.relation.app]
         self.on.endpoints_changed.emit(
             relation_id=rel_id,
-            remote_store_address=rel_data["remote-store-address"],
-            remote_store_bearer_token=rel_data["remote-store-bearer-token"],
-            remote_store_insecure=rel_data["remote-store-insecure"],
+            remote_store_address=rel_data.get("remote-store-address", ""),
+            remote_store_bearer_token=rel_data.get("remote-store-bearer-token", ""),
+            remote_store_insecure=rel_data.get("remote-store-insecure", ""),
         )
 
     def _on_parca_store_relation_departed(self, event):
