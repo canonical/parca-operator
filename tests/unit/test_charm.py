@@ -10,8 +10,6 @@
 
 import json
 import unittest
-from subprocess import CalledProcessError
-from types import SimpleNamespace
 from unittest.mock import PropertyMock, patch
 from uuid import uuid4
 
@@ -44,6 +42,7 @@ class TestCharm(unittest.TestCase):
     def setUp(self):
         self.harness = Harness(ParcaOperatorCharm)
         self.addCleanup(self.harness.cleanup)
+        self.harness.add_network("10.10.10.10")
         self.harness.begin()
         self.maxDiff = None
 
@@ -77,12 +76,13 @@ class TestCharm(unittest.TestCase):
         hold.assert_called_once()
         self.assertEqual(self.harness.get_workload_version(), "v0.12.0")
 
-    @patch("charm.ParcaOperatorCharm._open_port")
     @patch("charm.Parca.start")
-    def test_start(self, parca_start, open_port):
+    def test_start(self, parca_start):
         self.harness.charm.on.start.emit()
         parca_start.assert_called_once()
-        open_port.assert_called_once()
+        self.assertEqual(
+            self.harness.charm.unit.opened_ports(), {ops.OpenedPort(protocol="tcp", port=7070)}
+        )
         self.assertEqual(self.harness.charm.unit.status, ActiveStatus())
 
     @patch("charm.Parca.configure")
@@ -100,19 +100,6 @@ class TestCharm(unittest.TestCase):
         self.harness.charm.on.remove.emit()
         parca_stop.assert_called_once()
         self.assertEqual(self.harness.charm.unit.status, MaintenanceStatus("removing parca"))
-
-    @patch("charm.check_call")
-    def test_open_port(self, check_call):
-        result = self.harness.charm._open_port()
-        check_call.assert_called_with(["open-port", "7070/TCP"])
-        self.assertTrue(result)
-
-    @patch("charm.check_call")
-    def test_open_port_fail(self, check_call):
-        check_call.side_effect = CalledProcessError(1, "foo")
-        result = self.harness.charm._open_port()
-        check_call.assert_called_with(["open-port", "7070/TCP"])
-        self.assertFalse(result)
 
     @patch("charm.Parca.configure")
     def test_profiling_endpoint_relation(self, _):
@@ -174,7 +161,6 @@ class TestCharm(unittest.TestCase):
         self.assertEqual(self.harness.charm.profiling_consumer.jobs(), expected)
 
     @patch("charm.Parca.configure")
-    @patch("ops.model.Model.get_binding", lambda *args: MockBinding("10.10.10.10"))
     def test_metrics_endpoint_relation(self, _):
         # Create a relation to an app named "prometheus"
         rel_id = self.harness.add_relation("metrics-endpoint", "prometheus")
@@ -192,7 +178,6 @@ class TestCharm(unittest.TestCase):
         }
         self.assertEqual(unit_data, expected)
 
-    @patch("ops.model.Model.get_binding", lambda *args: MockBinding("10.10.10.10"))
     def test_parca_store_relation(self):
         self.harness.set_leader(True)
         # Create a relation to an app named "parca-agent"
@@ -209,7 +194,6 @@ class TestCharm(unittest.TestCase):
         self.assertEqual(unit_data, expected)
 
     @patch("charm.Parca.configure")
-    @patch("ops.model.Model.get_binding", lambda *args: MockBinding("10.10.10.10"))
     def test_parca_external_store_relation(self, configure):
         self.harness.set_leader(True)
         # Create a relation to an app named "polar-signals-cloud"
@@ -223,12 +207,10 @@ class TestCharm(unittest.TestCase):
             "remote-store-insecure": "false",
         }
         self.harness.update_relation_data(rel_id, "polar-signals-cloud", store_config)
-
         # Ensure that we call the configure method on Parca with the correct store details
         configure.assert_called_with(store_config=store_config)
+        configure.reset()
         self.assertEqual(self.harness.charm.unit.status, ActiveStatus())
 
-
-class MockBinding:
-    def __init__(self, addr):
-        self.network = SimpleNamespace(bind_address=addr)
+        self.harness.remove_relation(rel_id)
+        configure.assert_called_with(store_config={})

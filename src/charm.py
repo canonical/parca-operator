@@ -5,13 +5,16 @@
 """Charm for Parca - a continuous profiling tool."""
 
 import logging
-from subprocess import CalledProcessError, check_call
 
 import ops
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.operator_libs_linux.v1 import snap
 from charms.parca.v0.parca_scrape import ProfilingEndpointConsumer, ProfilingEndpointProvider
-from charms.parca.v0.parca_store import ParcaStoreEndpointProvider
+from charms.parca.v0.parca_store import (
+    ParcaStoreEndpointProvider,
+    ParcaStoreEndpointRequirer,
+    RemoveStoreEvent,
+)
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from parca import Parca
 
@@ -34,9 +37,11 @@ class ParcaOperatorCharm(ops.CharmBase):
         self.framework.observe(self.on.update_status, self._update_status)
 
         # Enable the option to send profiles to a remote store (i.e. Polar Signals Cloud)
-        self.framework.observe(
-            self.on.external_parca_store_endpoint_relation_changed, self._configure_remote_store
+        self.store_requirer = ParcaStoreEndpointRequirer(
+            self, relation_name="external-parca-store-endpoint"
         )
+        self.framework.observe(self.store_requirer.on.endpoints_changed, self._configure_store)
+        self.framework.observe(self.store_requirer.on.remove_store, self._configure_store)
 
         # The profiling_consumer handles the relation that allows Parca to scrape other apps in the
         # model that provide a "profiling-endpoint" relation
@@ -92,7 +97,7 @@ class ParcaOperatorCharm(ops.CharmBase):
     def _start(self, _):
         """Start Parca."""
         self.parca.start()
-        self._open_port()
+        self.unit.open_port("tcp", 7070)
         self.unit.status = ops.ActiveStatus()
 
     def _config_changed(self, _):
@@ -102,18 +107,12 @@ class ParcaOperatorCharm(ops.CharmBase):
         self.parca.configure(app_config=self.config, scrape_config=scrape_config)
         self.unit.status = ops.ActiveStatus()
 
-    def _configure_remote_store(self, event):
+    def _configure_store(self, event):
         """Configure store with credentials passed over parca-external-store-endpoint relation."""
         self.unit.status = ops.MaintenanceStatus("reconfiguring parca")
-        rel_data = event.relation.data[event.relation.app]
-        rel_keys = ["remote-store-address", "remote-store-bearer-token", "remote-store-insecure"]
-        self.parca.configure(store_config={k: rel_data.get(k, "") for k in rel_keys})
+        store_config = {} if isinstance(event, RemoveStoreEvent) else event.store_config
+        self.parca.configure(store_config=store_config)
         self.unit.status = ops.ActiveStatus()
-
-    def _remove(self, _):
-        """Remove Parca from the machine."""
-        self.unit.status = ops.MaintenanceStatus("removing parca")
-        self.parca.remove()
 
     def _on_profiling_targets_changed(self, _):
         """Update the Parca scrape configuration according to present relations."""
@@ -121,15 +120,10 @@ class ParcaOperatorCharm(ops.CharmBase):
         self.parca.configure(app_config=self.config, scrape_config=self.profiling_consumer.jobs())
         self.unit.status = ops.ActiveStatus()
 
-    def _open_port(self) -> bool:
-        """Ensure that Juju opens the correct TCP port for the Parca Dashboard."""
-        try:
-            check_call(["open-port", "7070/TCP"])
-            return True
-        except CalledProcessError as e:
-            logger.error("error opening port: %s", str(e))
-            logger.debug(e, exc_info=True)
-            return False
+    def _remove(self, _):
+        """Remove Parca from the machine."""
+        self.unit.status = ops.MaintenanceStatus("removing parca")
+        self.parca.remove()
 
 
 if __name__ == "__main__":  # pragma: nocover
