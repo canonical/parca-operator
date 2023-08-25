@@ -31,7 +31,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 5
+LIBPATCH = 6
 
 
 DEFAULT_BIN_PATH = "/parca"
@@ -40,11 +40,12 @@ DEFAULT_PROFILE_PATH = "/var/lib/parca"
 
 
 def parca_command_line(
-    app_config: dict,
+    app_config: dict = None,
     *,
     bin_path: str = DEFAULT_BIN_PATH,
     config_path: str = DEFAULT_CONFIG_PATH,
     profile_path: str = DEFAULT_PROFILE_PATH,
+    store_config: dict = None,
 ) -> str:
     """Generate a valid Parca command line.
 
@@ -53,17 +54,35 @@ def parca_command_line(
         bin_path: Path to the Parca binary to be started.
         config_path: Path to the Parca YAML configuration file.
         profile_path: Path to profile storage directory.
+        store_config: Configuration to send profiles to a remote store
     """
     cmd = [str(bin_path), f"--config-path={config_path}"]
 
     # Render the template files with the correct values
-    if app_config["enable-persistence"]:
-        # Add the correct command line options for disk persistence
-        cmd.append("--enable-persistence")
-        cmd.append(f"--storage-path={profile_path}")
-    else:
-        limit = app_config["memory-storage-limit"] * 1048576
-        cmd.append(f"--storage-active-memory={limit}")
+    if app_config:
+        if app_config.get("enable-persistence", None):
+            # Add the correct command line options for disk persistence
+            cmd.append("--enable-persistence")
+            cmd.append(f"--storage-path={profile_path}")
+        else:
+            limit = app_config["memory-storage-limit"] * 1048576
+            cmd.append(f"--storage-active-memory={limit}")
+
+    if store_config is not None:
+        store_config_args = []
+
+        if addr := store_config.get("remote-store-address", None):
+            store_config_args.append(f"--store-address={addr}")
+
+        if token := store_config.get("remote-store-bearer-token", None):
+            store_config_args.append(f"--bearer-token={token}")
+
+        if insecure := store_config.get("remote-store-insecure", None):
+            store_config_args.append(f"--insecure={insecure}")
+
+        if store_config_args:
+            store_config_args.append("--mode=scraper-only")
+            cmd += store_config_args
 
     return " ".join(cmd)
 
