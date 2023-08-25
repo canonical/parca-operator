@@ -1,7 +1,35 @@
-"""## Overview.
+"""# Overview.
 
 This document explains how to integrate with the Parca charm where you wish to use Parca
 as a store for profiles that are sent from a Parca Agent.
+
+## Requirer Library usage
+
+In this mode, your charm will be an application that needs to receive store configuration over the
+relation in order that the workload can be configured to use a remote store for profiles.
+
+To begin, start by importing the library and subscribing to some events:
+
+```python
+from charms.parca.v0.parca_store import (ParcaStoreEndpointRequirer, RemoveStoreEvent)
+
+def __init__(self, *args):
+    super().__init__(*args)
+    # ...
+    self.store_requirer = ParcaStoreEndpointRequirer(
+        self, relation_name="external-parca-store-endpoint"
+    )
+    self.framework.observe(self.store_requirer.on.endpoints_changed, self._configure_store)
+    self.framework.observe(self.store_requirer.on.remove_store, self._configure_store)
+    # ...
+
+def _configure_store(self, event):
+    store_config = {} if isinstance(event, RemoveStoreEvent) else event.store_config
+    self.application.configure(store_config=store_config)
+    # ...
+```
+
+You can also fetch the store config at any time by using `self.store_requirer.config`.
 
 ## Provider library usage
 
@@ -78,7 +106,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 2
+LIBPATCH = 3
 
 
 DEFAULT_RELATION_NAME = "parca-store-endpoint"
@@ -225,7 +253,14 @@ class ParcaStoreEndpointRequirer(ops.Object):
     on = ParcaStoreEvents()
 
     def __init__(self, charm, relation_name: str = DEFAULT_RELATION_NAME):
-        """Construct a Parca profile store requirer."""
+        """Construct a Parca profile store requirer.
+
+        Args:
+            charm: a `ops.CharmBase` object that manages this
+                `ParcaStoreEndpointRequirer` object. Typically this is `self` in the instantiating
+                class.
+            relation_name: an optional string that denotes the name of the relation endpoint.
+        """
         super().__init__(charm, relation_name)
         self._charm = charm
         self._relation_name = relation_name
@@ -259,3 +294,12 @@ class ParcaStoreEndpointRequirer(ops.Object):
         """
         rel_id = event.relation.id
         self.on.remove_store.emit(relation_id=rel_id)
+
+    @property
+    def config(self) -> dict:
+        """Return the store config for a given requirer if the relation is formed."""
+        if relation := self._charm.model.get_relation(self._relation_name):
+            keys = ["remote-store-address", "remote-store-bearer-token", "remote-store-insecure"]
+            return {k: relation.data[relation.app].get(k, "") for k in keys}
+        else:
+            return {}
