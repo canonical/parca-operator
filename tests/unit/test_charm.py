@@ -104,27 +104,19 @@ class TestCharm(unittest.TestCase):
     @patch("charm.Parca.configure")
     def test_profiling_endpoint_relation(self, _):
         # Create a relation to an app named "profiled-app"
-        rel_id = self.harness.add_relation("profiling-endpoint", "profiled-app")
-        # Simulate that "profiled-app" has provided the data we're expecting
-        self.harness.update_relation_data(
-            rel_id,
+        self.harness.add_relation(
+            "profiling-endpoint",
             "profiled-app",
-            {
+            app_data={
                 "scrape_metadata": json.dumps(SCRAPE_METADATA),
                 "scrape_jobs": json.dumps(SCRAPE_JOBS),
             },
-        )
-        # Add a unit to the relation
-        self.harness.add_relation_unit(rel_id, "profiled-app/0")
-        # Simulate the remote unit adding its details for scraping
-        self.harness.update_relation_data(
-            rel_id,
-            "profiled-app/0",
-            {
+            unit_data={
                 "parca_scrape_unit_address": "1.1.1.1",
                 "parca_scrape_unit_name": "profiled-app/0",
             },
         )
+
         # Taking into account the data provided by the simulated app, we should receive the
         # following jobs config from the profiling_consumer
         expected = [
@@ -163,9 +155,7 @@ class TestCharm(unittest.TestCase):
     @patch("charm.Parca.configure")
     def test_metrics_endpoint_relation(self, _):
         # Create a relation to an app named "prometheus"
-        rel_id = self.harness.add_relation("metrics-endpoint", "prometheus")
-        # Add a prometheus unit
-        self.harness.add_relation_unit(rel_id, "prometheus/0")
+        rel_id = self.harness.add_relation("metrics-endpoint", "prometheus", unit_data={})
         # Ugly re-init workaround: manually call `set_scrape_job_spec`
         # https://github.com/canonical/operator/issues/736
         self.harness.charm.metrics_endpoint_provider.set_scrape_job_spec()
@@ -181,9 +171,7 @@ class TestCharm(unittest.TestCase):
     def test_parca_store_relation(self):
         self.harness.set_leader(True)
         # Create a relation to an app named "parca-agent"
-        rel_id = self.harness.add_relation("parca-store-endpoint", "parca-agent")
-        # Add a parca-agent unit
-        self.harness.add_relation_unit(rel_id, "parca-agent/0")
+        rel_id = self.harness.add_relation("parca-store-endpoint", "parca-agent", unit_data={})
         # Grab the unit data from the relation
         unit_data = self.harness.get_relation_data(rel_id, self.harness.charm.app.name)
         # Ensure that the unit set its targets correctly
@@ -196,17 +184,16 @@ class TestCharm(unittest.TestCase):
     @patch("charm.Parca.configure")
     def test_parca_external_store_relation(self, configure):
         self.harness.set_leader(True)
-        # Create a relation to an app named "polar-signals-cloud"
-        rel_id = self.harness.add_relation("external-parca-store-endpoint", "polar-signals-cloud")
-        # Add a polar-signals-cloud unit
-        self.harness.add_relation_unit(rel_id, "polar-signals-cloud/0")
         # Set some data from the remote application
         store_config = {
             "remote-store-address": "grpc.polarsignals.com:443",
             "remote-store-bearer-token": "deadbeef",
             "remote-store-insecure": "false",
         }
-        self.harness.update_relation_data(rel_id, "polar-signals-cloud", store_config)
+        # Create a relation to an app named "polar-signals-cloud"
+        rel_id = self.harness.add_relation(
+            "external-parca-store-endpoint", "polar-signals-cloud", app_data=store_config
+        )
         # Ensure that we call the configure method on Parca with the correct store details
         configure.assert_called_with(store_config=store_config)
         configure.reset()
