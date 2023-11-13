@@ -47,7 +47,7 @@ class Parca:
         """Remove the Parca snap, preserving config and data."""
         self._snap.ensure(snap.SnapState.Absent)
 
-    def configure(self, *, app_config=None, scrape_config=None, store_config=None, restart=True):
+    def configure(self, *, app_config=None, scrape_config=None, store_config=None, s3_creds=None, restart=True):
         """Configure Parca on the host system. Restart Parca by default."""
         if app_config:
             if app_config.get("enable-persistence", None):
@@ -68,12 +68,12 @@ class Parca:
 
         if scrape_config:
             # If the scrape configs are explicitly set, then build the config from new
-            parca_config = ParcaConfig(scrape_config, profile_path=self.PROFILE_PATH)
+            parca_config = ParcaConfig(scrape_config, profile_path=self.PROFILE_PATH, s3_creds)
         else:
             # Otherwise grab existing scrape jobs and build a config to include them
             old = yaml.safe_load(Path(self.CONFIG_PATH).read_text())
             parca_config = ParcaConfig(
-                old.get("scrape_configs", []), profile_path=self.PROFILE_PATH
+                old.get("scrape_configs", []), profile_path=self.PROFILE_PATH, s3_creds
             )
 
         with open(self.CONFIG_PATH, "w+") as f:

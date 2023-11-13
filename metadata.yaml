@@ -15,6 +15,9 @@ requires:
     interface: parca_scrape
   external-parca-store-endpoint:
     interface: parca_store
+  s3-parameters:
+    interface: s3
+    limit: 1
 
 provides:
   metrics-endpoint:

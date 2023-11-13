@@ -100,18 +100,21 @@ def parse_version(vstr: str) -> str:
 class ParcaConfig:
     """Class representing the Parca config file."""
 
-    def __init__(self, scrape_configs=[], *, profile_path=DEFAULT_PROFILE_PATH):
+    def __init__(self, scrape_configs=[], *, profile_path=DEFAULT_PROFILE_PATH, s3_creds=None):
         self._profile_path = str(profile_path)
         self._scrape_configs = scrape_configs
+        self._s3_credentials = s3_creds
 
     @property
     def _config(self) -> dict:
-        return {
-            "object_storage": {
-                "bucket": {"type": "FILESYSTEM", "config": {"directory": self._profile_path}}
-            },
-            "scrape_configs": self._scrape_configs,
-        }
+        if self.s3_creds is None:
+            return {
+                # Read whatever config was here before overwriting
+                "object_storage": {
+                    "bucket": {"type": "FILESYSTEM", "config": {"directory": self._profile_path}}
+                },
+                "scrape_configs": self._scrape_configs,
+            }
 
     def to_dict(self) -> dict:
         """Return the Parca config as a Python dictionary."""

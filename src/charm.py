@@ -7,6 +7,7 @@
 import logging
 
 import ops
+from charms.data_platform_libs.v0.s3 import CredentialsChangedEvent, S3Requirer
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.operator_libs_linux.v1 import snap
 from charms.parca.v0.parca_scrape import ProfilingEndpointConsumer, ProfilingEndpointProvider
@@ -16,6 +17,7 @@ from charms.parca.v0.parca_store import (
     RemoveStoreEvent,
 )
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
+
 from parca import Parca
 
 logger = logging.getLogger(__name__)
@@ -70,6 +72,13 @@ class ParcaOperatorCharm(ops.CharmBase):
         # Allow Parca to provide dashboards to Grafana over a relation
         self._grafana_dashboard_provider = GrafanaDashboardProvider(self)
 
+        # Setup handlers for the S3 relation
+        self.s3_client = S3Requirer(self.charm, self.relation_name)
+        self.framework.observe(
+            self.s3_client.on.credentials_changed, self._on_s3_credential_changed
+        )
+        self.framework.observe(self.s3_client.on.credentials_gone, self._on_s3_credential_gone)
+
     def _install(self, _):
         """Install dependencies for Parca and ensure initial configs are written."""
         self.unit.status = ops.MaintenanceStatus("installing parca")
@@ -119,6 +128,14 @@ class ParcaOperatorCharm(ops.CharmBase):
         self.unit.status = ops.MaintenanceStatus("reconfiguring parca")
         self.parca.configure(app_config=self.config, scrape_config=self.profiling_consumer.jobs())
         self.unit.status = ops.ActiveStatus()
+
+    def _on_s3_credential_changed(self, event: CredentialsChangedEvent):
+        """Update the Parca storage configuration to use S3 credentials when possible."""
+        self.parca.configure(s3_creds=self.s3_client.get_s3_connection_info())
+
+    def _on_s3_credential_gone(self, event: CredentialsChangedEvent):
+        """Remove S credentials from Parca config when relation is broken."""
+        self.parca.configure(s3_creds={})
 
     def _remove(self, _):
         """Remove Parca from the machine."""
