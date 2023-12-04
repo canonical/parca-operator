@@ -74,6 +74,6 @@ jobs:
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
-          juju-channel: 3.1/stable
+          juju-channel: 3.3/stable
       - name: Run integration tests
         run: tox -e integration
