@@ -38,7 +38,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Check libs
-        uses: canonical/charming-actions/check-libraries@33627add534483f7d5bd83fff736a9330db3b4f8 # 2.6.0
+        uses: canonical/charming-actions/check-libraries@19db2e9c9da186f64b38b95d8e7e57229f3362da # 2.6.0
         with:
           credentials: "${{ secrets.CHARMHUB_TOKEN }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
@@ -56,7 +56,7 @@ jobs:
       - name: Install dependencies
         run: python -m pip install tox
       - name: Setup LXD
-        uses: canonical/setup-lxd@e815787b53c690d006e582ef03e43f08d56d64ba
+        uses: canonical/setup-lxd@87f9a0dbf8855632e12fad0a45795338e4e97d12
       - name: Run tests
         run: tox -e functional
 
