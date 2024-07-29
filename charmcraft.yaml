@@ -12,3 +12,10 @@ bases:
         channel: "20.04"
       - name: "ubuntu"
         channel: "22.04"
+
+parts:
+  charm:
+    build-packages:
+      - cargo
+      - pkg-config
+      - rustc
