@@ -21,6 +21,7 @@ yaml_config = str(ParcaConfig())
 cmd = parca_command_line(app_config)
 ```
 """
+
 import yaml
 
 # The unique Charmhub library identifier, never change it
