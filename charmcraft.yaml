@@ -1,5 +1,4 @@
 name: parca
-display-name: Parca
 summary: Parca continuous profiling tool.
 description: |
   Continuous profiling for analysis of CPU and memory usage, down to the line number and throughout
