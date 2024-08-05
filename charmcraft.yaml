@@ -1,17 +1,14 @@
-# Learn more about charmcraft.yaml configuration at:
-# https://juju.is/docs/sdk/charmcraft-config
+name: parca
+display-name: Parca
+summary: Parca continuous profiling tool.
+description: |
+  Continuous profiling for analysis of CPU and memory usage, down to the line number and throughout
+  time. Saving infrastructure cost, improving performance, and increasing reliability.
+
 type: "charm"
-bases:
-  - build-on:
-      - name: "ubuntu"
-        channel: "20.04"
-      - name: "ubuntu"
-        channel: "22.04"
-    run-on:
-      - name: "ubuntu"
-        channel: "20.04"
-      - name: "ubuntu"
-        channel: "22.04"
+base: ubuntu@24.04
+platforms:
+  amd64:
 
 parts:
   charm:
@@ -19,3 +16,35 @@ parts:
       - cargo
       - pkg-config
       - rustc
+
+requires:
+  profiling-endpoint:
+    interface: parca_scrape
+  external-parca-store-endpoint:
+    interface: parca_store
+
+provides:
+  metrics-endpoint:
+    interface: prometheus_scrape
+  self-profiling-endpoint:
+    interface: parca_scrape
+  grafana-dashboard:
+    interface: grafana_dashboard
+  parca-store-endpoint:
+    interface: parca_store
+
+config:
+  options:
+    enable-persistence:
+      description: |
+        Do not store profiles in memory, persist to disk. Location for persistence is '/var/lib/parca'
+      type: boolean
+      default: false
+
+    memory-storage-limit:
+      description: |
+        When storing profiles in memory, configure the in-memory storage limit, specified in MB.
+
+        Does nothing if enable-persistence is True.
+      type: int
+      default: 4096
