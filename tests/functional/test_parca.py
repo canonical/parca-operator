@@ -7,6 +7,7 @@ from subprocess import check_call
 
 import yaml
 from charms.parca.v0.parca_config import ParcaConfig
+
 from parca import Parca
 
 DEFAULT_PARCA_CONFIG = {

@@ -16,6 +16,7 @@ from charms.parca.v0.parca_store import (
     RemoveStoreEvent,
 )
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
+
 from parca import Parca
 
 logger = logging.getLogger(__name__)
