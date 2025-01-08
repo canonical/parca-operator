@@ -184,7 +184,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 5
+LIBPATCH = 6
 
 logger = logging.getLogger(__name__)
 
@@ -283,17 +283,19 @@ def _validate_relation_by_interface_and_direction(
     actual_relation_interface = relation.interface_name
     if actual_relation_interface != expected_relation_interface:
         raise RelationInterfaceMismatchError(
-            relation_name, expected_relation_interface, actual_relation_interface
+            relation_name,
+            expected_relation_interface,
+            actual_relation_interface,  # pyright: ignore
         )
 
     if expected_relation_role == ops.RelationRole.provides:
         if relation_name not in charm.meta.provides:
-            raise ops.RelationRoleMismatchError(
+            raise RelationRoleMismatchError(
                 relation_name, ops.RelationRole.provides, ops.RelationRole.requires
             )
     elif expected_relation_role == ops.RelationRole.requires:
         if relation_name not in charm.meta.requires:
-            raise ops.RelationRoleMismatchError(
+            raise RelationRoleMismatchError(
                 relation_name, ops.RelationRole.requires, ops.RelationRole.provides
             )
     else:
@@ -356,7 +358,7 @@ class MonitoringEvents(ops.ObjectEvents):
 class ProfilingEndpointConsumer(ops.Object):
     """Parca based monitoring service."""
 
-    on = MonitoringEvents()
+    on = MonitoringEvents()  # pyright: ignore
 
     def __init__(self, charm: ops.CharmBase, relation_name: str = DEFAULT_RELATION_NAME):
         """Construct a Parca based monitoring service.
@@ -372,7 +374,7 @@ class ProfilingEndpointConsumer(ops.Object):
             RelationInterfaceMismatchError: The relation with the same name as provided
                 via `relation_name` argument does not have the `parca_scrape` relation
                 interface.
-            ops.RelationRoleMismatchError: If the relation with the same name as provided
+            RelationRoleMismatchError: If the relation with the same name as provided
                 via `relation_name` argument does not have the `ops.RelationRole.requires`
                 role.
         """
@@ -704,7 +706,7 @@ class ProfilingEndpointProvider(ops.Object):
             RelationInterfaceMismatchError: The relation with the same name as provided
                 via `relation_name` argument does not have the `parca_scrape` relation
                 interface.
-            ops.RelationRoleMismatchError: If the relation with the same name as provided
+            RelationRoleMismatchError: If the relation with the same name as provided
                 via `relation_name` argument does not have the `ops.RelationRole.provides`
                 role.
         """

@@ -93,7 +93,7 @@ Where `self._bearer_token_generator` can be any `Callable` that returns a string
 import ipaddress
 import json
 import socket
-from typing import Callable
+from typing import Callable, Optional
 from urllib.parse import urlparse
 
 import ops
@@ -106,7 +106,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 4
+LIBPATCH = 5
 
 
 DEFAULT_RELATION_NAME = "parca-store-endpoint"
@@ -120,7 +120,7 @@ class ParcaStoreEndpointProvider(ops.Object):
         charm,
         port: int = 7070,
         insecure: bool = False,
-        external_url: str = None,
+        external_url: Optional[str] = None,
         token_generator: Callable = lambda: "",
         relation_name: str = DEFAULT_RELATION_NAME,
     ):
@@ -250,7 +250,7 @@ class ParcaStoreEvents(ops.ObjectEvents):
 class ParcaStoreEndpointRequirer(ops.Object):
     """Provide an interface for apps that need to send data to a Parca Store."""
 
-    on = ParcaStoreEvents()
+    on = ParcaStoreEvents()  # pyright: ignore
 
     def __init__(self, charm, relation_name: str = DEFAULT_RELATION_NAME):
         """Construct a Parca profile store requirer.

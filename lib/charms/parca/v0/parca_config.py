@@ -22,6 +22,8 @@ cmd = parca_command_line(app_config)
 ```
 """
 
+from typing import Optional
+
 import yaml
 
 # The unique Charmhub library identifier, never change it
@@ -32,7 +34,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 6
+LIBPATCH = 7
 
 
 DEFAULT_BIN_PATH = "/parca"
@@ -41,12 +43,12 @@ DEFAULT_PROFILE_PATH = "/var/lib/parca"
 
 
 def parca_command_line(
-    app_config: dict = None,
+    app_config: Optional[dict] = None,
     *,
     bin_path: str = DEFAULT_BIN_PATH,
     config_path: str = DEFAULT_CONFIG_PATH,
     profile_path: str = DEFAULT_PROFILE_PATH,
-    store_config: dict = None,
+    store_config: Optional[dict] = None,
 ) -> str:
     """Generate a valid Parca command line.
 
@@ -61,7 +63,7 @@ def parca_command_line(
 
     # Render the template files with the correct values
 
-    if app_config.get("enable-persistence", None):
+    if app_config is None or app_config.get("enable-persistence", None):
         # Add the correct command line options for disk persistence
         cmd.append("--enable-persistence")
         cmd.append(f"--storage-path={profile_path}")
