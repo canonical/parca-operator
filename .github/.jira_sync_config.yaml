@@ -6,7 +6,7 @@ settings:
     not_planned: rejected
 
   components:
-    - parca-agent
+    - parca
     - team-tracing
 
   add_gh_comment: false
