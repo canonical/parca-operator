@@ -9,37 +9,6 @@ on:
 jobs:
   update-lib:
     name: Check libraries
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          fetch-depth: 0
+    uses: canonical/observability/.github/workflows/charm-update-libs.yaml@main
+    secrets: inherit
 
-      - name: Check libs
-        run: |
-          sudo snap install charmcraft --classic --channel latest/stable
-          charmcraft fetch-lib
-        env:
-          CHARMCRAFT_AUTH: "${{ secrets.CHARMHUB_TOKEN }}"
-
-      - uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2
-        id: generate-token
-        with:
-          app_id: ${{ secrets.APP_ID }}
-          private_key: ${{ secrets.APP_KEY }}
-
-      - name: Create a PR for local changes
-        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7
-        id: cpr
-        with:
-          token: ${{ steps.generate-token.outputs.token }}
-          commit-message: "chore: bump charm libraries"
-          committer: "Github Actions <github-actions@github.com>"
-          author: "Github Actions <github-actions@github.com>"
-          title: "chore(deps): bump charm libraries"
-          body: Automated action to fetch latest version of charm libraries.
-          branch: "auto-libs"
-          delete-branch: true
-          reviewers: jnsgruk
-          assignees: jnsgruk
