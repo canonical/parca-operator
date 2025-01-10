@@ -1,3 +1,7 @@
+> ### ⚠️ Deprecated
+>
+> This charm is deprecated in favor of https://github.com/canonical/parca-k8s-operator.
+
 # Parca Operator
 
 Parca provides continuous profiling for analysis of CPU and memory usage, down to the line number
